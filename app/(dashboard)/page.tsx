@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { Package, DollarSign, AlertTriangle, ArrowRightLeft } from 'lucide-react';
+import { Package, Coins, AlertTriangle, ArrowRightLeft } from 'lucide-react';
 import { StatsCard } from '@/components/dashboard/StatsCard';
 import { StockChart } from '@/components/dashboard/StockChart';
 import { RecentActivity } from '@/components/dashboard/RecentActivity';
@@ -50,7 +50,7 @@ export default function DashboardPage() {
   }
 
   const formatCurrency = (value: number) => {
-    return new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' }).format(value);
+    return `Rs. ${value.toLocaleString('en-LK', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
   };
 
   return (
@@ -65,7 +65,7 @@ export default function DashboardPage() {
         <StatsCard 
           title="Total Stock Value" 
           value={formatCurrency(stats?.totalValue || 0)} 
-          icon={DollarSign} 
+          icon={Coins} 
         />
         <StatsCard 
           title="Low Stock Items" 

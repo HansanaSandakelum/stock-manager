@@ -144,7 +144,7 @@ export function ProductForm({ initialData, isEditing }: ProductFormProps) {
           />
 
           <Input
-            label="Unit Price ($)"
+            label="Unit Price (Rs.)"
             name="unitPrice"
             type="number"
             min="0"

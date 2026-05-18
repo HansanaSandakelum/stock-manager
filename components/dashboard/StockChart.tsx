@@ -15,6 +15,11 @@ interface StockChartProps {
 
 export function StockChart({ data }: StockChartProps) {
   const { theme } = useTheme();
+  const [mounted, setMounted] = React.useState(false);
+
+  React.useEffect(() => {
+    setMounted(true);
+  }, []);
   
   const isDark = theme === 'dark';
   
@@ -28,11 +33,19 @@ export function StockChart({ data }: StockChartProps) {
   const tooltipTextColor = isDark ? '#fafafa' : '#18181b';
   const cursorColor = isDark ? '#18181b' : '#f4f4f5';
 
+  if (!mounted) {
+    return (
+      <Card className="h-[400px] flex flex-col justify-center items-center">
+        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-zinc-900 dark:border-zinc-100" />
+      </Card>
+    );
+  }
+
   return (
     <Card className="h-[400px] flex flex-col">
       <h3 className="text-lg font-semibold text-zinc-900 dark:text-zinc-100 mb-6">Stock Movement (Last 7 Days)</h3>
       <div className="flex-1 min-h-0">
-        <ResponsiveContainer width="100%" height="100%">
+        <ResponsiveContainer width="100%" height="100%" minWidth={0} minHeight={0}>
           <BarChart data={data} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
             <CartesianGrid strokeDasharray="3 3" vertical={false} stroke={gridColor} />
             <XAxis dataKey="date" axisLine={false} tickLine={false} tick={{ fill: axisColor, fontSize: 12 }} dy={10} />
