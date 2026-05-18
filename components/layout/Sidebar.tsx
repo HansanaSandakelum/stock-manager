@@ -12,8 +12,11 @@ import {
   FileText,
   LogOut,
   Menu,
-  X
+  X,
+  Sun,
+  Moon
 } from 'lucide-react';
+import { useTheme } from '@/components/ThemeProvider';
 
 const navigation = [
   { name: 'Dashboard', href: '/', icon: LayoutDashboard },
@@ -97,6 +100,7 @@ export function Sidebar({ mobileOpen, setMobileOpen }: { mobileOpen: boolean, se
 
 export function Topbar({ setMobileOpen }: { setMobileOpen: (v: boolean) => void }) {
   const pathname = usePathname();
+  const { theme, toggleTheme } = useTheme();
   
   // Create title from pathname
   const title = pathname === '/' 
@@ -114,6 +118,18 @@ export function Topbar({ setMobileOpen }: { setMobileOpen: (v: boolean) => void 
         </button>
         <h1 className="text-xl font-semibold text-zinc-900 dark:text-zinc-100">{title}</h1>
       </div>
+
+      <button
+        onClick={toggleTheme}
+        className="p-2 text-zinc-500 dark:text-zinc-400 hover:text-zinc-900 dark:hover:text-zinc-100 hover:bg-zinc-100 dark:hover:bg-zinc-800 rounded-xl transition-all active:scale-95"
+        aria-label="Toggle dark mode"
+      >
+        {theme === 'dark' ? (
+          <Sun className="w-5 h-5" />
+        ) : (
+          <Moon className="w-5 h-5" />
+        )}
+      </button>
     </header>
   );
 }
