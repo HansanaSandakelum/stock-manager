@@ -6,13 +6,13 @@ interface ButtonProps extends React.ButtonHTMLAttributes<HTMLButtonElement> {
 }
 
 export function Button({ variant = 'primary', isLoading, children, className = '', ...props }: ButtonProps) {
-  const baseStyle = 'px-4 py-2 text-sm font-medium rounded-xl transition-all duration-200 inline-flex items-center justify-center gap-2 active:scale-[0.98]';
+  const baseStyle = 'px-4 py-2 text-sm font-medium rounded-xl transition-all duration-200 inline-flex items-center justify-center gap-2 active:scale-[0.97] disabled:pointer-events-none disabled:opacity-50';
   
   const variants = {
-    primary: 'bg-zinc-900 text-white hover:bg-zinc-800 active:bg-zinc-950 disabled:opacity-50 dark:bg-zinc-100 dark:text-zinc-900 dark:hover:bg-zinc-200',
-    secondary: 'bg-zinc-100 text-zinc-900 hover:bg-zinc-200 active:bg-zinc-300 disabled:opacity-50 dark:bg-zinc-800 dark:text-zinc-100 dark:hover:bg-zinc-700',
-    destructive: 'bg-red-500 text-white hover:bg-red-600 active:bg-red-700 disabled:opacity-50',
-    outline: 'border border-zinc-200 text-zinc-900 hover:bg-zinc-50 active:bg-zinc-100 disabled:opacity-50 dark:border-zinc-800 dark:text-zinc-100 dark:hover:bg-zinc-900',
+    primary: 'bg-gradient-to-r from-indigo-600 to-blue-600 hover:from-indigo-500 hover:to-blue-500 text-white shadow-sm shadow-indigo-500/10 hover:shadow-indigo-500/20 hover:-translate-y-[1px]',
+    secondary: 'bg-zinc-50 hover:bg-zinc-100 text-zinc-900 border border-zinc-100 dark:bg-zinc-800/40 dark:hover:bg-zinc-800/80 dark:border-zinc-800 dark:text-zinc-100 hover:-translate-y-[1px]',
+    destructive: 'bg-gradient-to-r from-red-500 to-rose-600 text-white hover:from-red-600 hover:to-rose-700 hover:shadow-sm hover:shadow-red-500/10 hover:-translate-y-[1px]',
+    outline: 'border border-zinc-200 text-zinc-900 hover:bg-zinc-50 dark:border-zinc-800 dark:text-zinc-100 dark:hover:bg-zinc-900 hover:-translate-y-[1px]',
   };
 
   return (

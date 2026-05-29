@@ -15,11 +15,42 @@
   --color-destructive-500: #ef4444;
   --color-destructive-600: #dc2626;
 
-  --font-sans: "Inter", "system-ui", "-apple-system", "BlinkMacSystemFont", "Segoe UI", "Roboto", "Helvetica Neue", "Arial", "sans-serif";
+  --font-sans: "Plus Jakarta Sans", "Inter", "system-ui", "-apple-system", "BlinkMacSystemFont", "Segoe UI", "Roboto", "Helvetica Neue", "Arial", "sans-serif";
 }
 
 @layer base {
   body {
-    @apply bg-[#F9FAFB] text-zinc-900 font-sans antialiased dark:bg-zinc-950 dark:text-zinc-50;
+    @apply bg-[#FAFBFC] text-zinc-900 font-sans antialiased dark:bg-[#09090B] dark:text-zinc-50;
+  }
+
+  /* Premium unified styling for all select inputs */
+  select {
+    appearance: none !important;
+    -webkit-appearance: none !important;
+    -moz-appearance: none !important;
+    background-image: url("data:image/svg+xml;charset=utf-8,%3Csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 20 20'%3E%3Cpath stroke='%2371717a' stroke-linecap='round' stroke-linejoin='round' stroke-width='1.5' d='m6 8 4 4 4-4'/%3E%3C/svg%3E") !important;
+    background-position: right 0.85rem center !important;
+    background-repeat: no-repeat !important;
+    background-size: 1.1rem !important;
+    padding-right: 2.75rem !important;
+    cursor: pointer !important;
+  }
+
+  /* Dark mode chevron */
+  .dark select {
+    background-image: url("data:image/svg+xml;charset=utf-8,%3Csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 20 20'%3E%3Cpath stroke='%23a1a1aa' stroke-linecap='round' stroke-linejoin='round' stroke-width='1.5' d='m6 8 4 4 4-4'/%3E%3C/svg%3E") !important;
+  }
+
+  /* Style option dropdown items to prevent transparency or low contrast bugs in dark mode */
+  select option {
+    background-color: #ffffff !important;
+    color: #18181b !important;
+    padding: 0.5rem !important;
+    font-size: 0.875rem !important;
+  }
+
+  .dark select option {
+    background-color: #0c0c14 !important; /* matches premium dark background */
+    color: #f4f4f5 !important;
   }
 }

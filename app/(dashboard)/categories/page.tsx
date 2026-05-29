@@ -3,6 +3,7 @@
 import { useState, useEffect } from 'react';
 import { Card } from '@/components/ui/Card';
 import { Button } from '@/components/ui/Button';
+import { Badge } from '@/components/ui/Badge';
 import { Input } from '@/components/ui/Input';
 import { Modal } from '@/components/ui/Modal';
 import { EmptyState } from '@/components/ui/EmptyState';
@@ -113,17 +114,17 @@ export default function CategoriesPage() {
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
         <div>
           <h2 className="text-xl font-semibold text-zinc-900 dark:text-zinc-100">Categories</h2>
-          <p className="text-sm text-zinc-500 dark:text-zinc-400">Manage product categories</p>
+          <p className="text-sm text-zinc-500 dark:text-zinc-400">Organize and manage your products</p>
         </div>
         <Button onClick={() => openModal()}>
           <Plus className="w-4 h-4" /> Add Category
         </Button>
       </div>
 
-      <Card className="p-0 overflow-hidden">
+      <Card className="p-0 overflow-hidden border border-zinc-100 dark:border-zinc-800/80 shadow-[0_8px_30px_rgb(0,0,0,0.015),0_1px_2px_rgb(0,0,0,0.01)] bg-white dark:bg-[#0c0c14]">
         {loading ? (
           <div className="p-6 space-y-4">
-            {[1, 2, 3].map(i => <Skeleton key={i} className="h-12 w-full" />)}
+            {[1, 2, 3].map(i => <Skeleton key={i} className="h-12 w-full rounded-xl" />)}
           </div>
         ) : categories.length === 0 ? (
           <EmptyState 
@@ -135,37 +136,37 @@ export default function CategoriesPage() {
           />
         ) : (
           <div className="overflow-x-auto">
-            <table className="w-full text-sm text-left">
-              <thead className="bg-zinc-50 dark:bg-zinc-800/50 border-b border-zinc-200 dark:border-zinc-800 text-zinc-500 dark:text-zinc-400">
+            <table className="w-full text-xs text-left">
+              <thead className="bg-zinc-50/50 dark:bg-zinc-900/40 border-b border-zinc-100 dark:border-zinc-800/80 text-[10px] font-semibold uppercase tracking-wider text-zinc-400 dark:text-zinc-500">
                 <tr>
-                  <th className="px-6 py-4 font-medium">Name</th>
-                  <th className="px-6 py-4 font-medium">Description</th>
-                  <th className="px-6 py-4 font-medium">Products</th>
-                  <th className="px-6 py-4 font-medium text-right">Actions</th>
+                  <th className="px-6 py-4.5 font-semibold">Name</th>
+                  <th className="px-6 py-4.5 font-semibold">Description</th>
+                  <th className="px-6 py-4.5 font-semibold">Products</th>
+                  <th className="px-6 py-4.5 font-semibold text-right">Actions</th>
                 </tr>
               </thead>
-              <tbody className="divide-y divide-zinc-200 dark:divide-zinc-800">
+              <tbody className="divide-y divide-zinc-100 dark:divide-zinc-800/60">
                 {categories.map((category) => (
-                  <tr key={category._id} className="hover:bg-zinc-50 dark:hover:bg-zinc-800/50 transition-colors">
-                    <td className="px-6 py-4 font-medium text-zinc-900 dark:text-zinc-100">{category.name}</td>
-                    <td className="px-6 py-4 text-zinc-500 dark:text-zinc-400">{category.description || '-'}</td>
+                  <tr key={category._id} className="hover:bg-zinc-50/30 dark:hover:bg-zinc-900/10 transition-colors">
+                    <td className="px-6 py-4 font-semibold text-zinc-800 dark:text-zinc-150">{category.name}</td>
+                    <td className="px-6 py-4 text-zinc-500 dark:text-zinc-400">{category.description || '—'}</td>
                     <td className="px-6 py-4">
-                      <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-zinc-100 dark:bg-zinc-800 text-zinc-900 dark:text-zinc-100">
+                      <Badge variant="default">
                         {category.productCount || 0} products
-                      </span>
+                      </Badge>
                     </td>
-                    <td className="px-6 py-4 text-right space-x-2">
+                    <td className="px-6 py-4 text-right space-x-1.5">
                       <button 
                         onClick={() => openModal(category)}
-                        className="p-1.5 text-zinc-400 hover:text-zinc-900 dark:hover:text-zinc-100 transition-colors rounded-lg hover:bg-zinc-100 dark:hover:bg-zinc-800"
+                        className="p-2 text-zinc-450 hover:text-zinc-900 dark:hover:text-zinc-200 transition-colors rounded-lg hover:bg-zinc-50 dark:hover:bg-zinc-900 inline-flex active:scale-95 cursor-pointer"
                       >
-                        <Edit2 className="w-4 h-4" />
+                        <Edit2 className="w-3.5 h-3.5" />
                       </button>
                       <button 
                         onClick={() => handleDelete(category._id, category.productCount)}
-                        className="p-1.5 text-zinc-400 hover:text-red-600 dark:hover:text-red-400 transition-colors rounded-lg hover:bg-red-50 dark:hover:bg-red-950/50"
+                        className="p-2 text-zinc-450 hover:text-red-500 dark:hover:text-red-400 transition-colors rounded-lg hover:bg-red-50/50 dark:hover:bg-red-950/20 inline-flex active:scale-95 cursor-pointer"
                       >
-                        <Trash2 className="w-4 h-4" />
+                        <Trash2 className="w-3.5 h-3.5" />
                       </button>
                     </td>
                   </tr>
@@ -190,9 +191,9 @@ export default function CategoriesPage() {
             placeholder="e.g. Electronics"
           />
           <div className="space-y-1.5">
-            <label className="text-sm font-medium text-zinc-700 dark:text-zinc-300">Description (Optional)</label>
+            <label className="text-xs font-semibold text-zinc-500 dark:text-zinc-400 uppercase tracking-wide">Description (Optional)</label>
             <textarea
-              className="w-full px-3 py-2 bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-xl text-sm transition-all focus:outline-none focus:ring-2 focus:ring-zinc-900 dark:focus:ring-zinc-100 disabled:opacity-50"
+              className="w-full px-3.5 py-2.5 bg-zinc-50/50 dark:bg-zinc-900/40 border border-zinc-200 dark:border-zinc-800 rounded-xl text-sm focus:outline-none focus:border-indigo-500 focus:ring-4 focus:ring-indigo-500/5 transition-all duration-200 text-zinc-800 dark:text-zinc-150 placeholder-zinc-400 dark:placeholder-zinc-650"
               rows={3}
               value={description}
               onChange={(e) => setDescription(e.target.value)}

@@ -23,15 +23,15 @@ export function StockChart({ data }: StockChartProps) {
   
   const isDark = theme === 'dark';
   
-  const gridColor = isDark ? '#27272a' : '#E5E7EB';
-  const axisColor = isDark ? '#a1a1aa' : '#71717a';
-  const barInColor = isDark ? '#f4f4f5' : '#18181b';
-  const barOutColor = '#ef4444'; // Keep red in both
+  const gridColor = isDark ? '#27273a' : '#f3f4f6';
+  const axisColor = isDark ? '#52525b' : '#9ca3af';
+  const barInColor = '#6366f1'; // Modern Indigo accent
+  const barOutColor = '#f43f5e'; // Soft minimal Rose accent
   
-  const tooltipBg = isDark ? '#09090b' : '#ffffff';
-  const tooltipBorder = isDark ? '#27272a' : '#e4e4e7';
-  const tooltipTextColor = isDark ? '#fafafa' : '#18181b';
-  const cursorColor = isDark ? '#18181b' : '#f4f4f5';
+  const tooltipBg = isDark ? '#0c0c14' : '#ffffff';
+  const tooltipBorder = isDark ? '#1f1f2e' : '#f3f4f6';
+  const tooltipTextColor = isDark ? '#fafafa' : '#1f2937';
+  const cursorColor = isDark ? '#181825' : '#f9fafb';
 
   if (!mounted) {
     return (
