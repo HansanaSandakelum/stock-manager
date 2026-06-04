@@ -7,14 +7,14 @@ interface BadgeProps {
 
 export function Badge({ children, variant = 'default' }: BadgeProps) {
   const variants = {
-    success: 'bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-400',
-    warning: 'bg-amber-100 dark:bg-amber-900/30 text-amber-700 dark:text-amber-400',
-    danger: 'bg-red-100 dark:bg-red-900/30 text-red-700 dark:text-red-400',
-    default: 'bg-zinc-100 dark:bg-zinc-800 text-zinc-700 dark:text-zinc-300',
+    success: 'bg-emerald-50 text-emerald-700 border border-emerald-100/60 dark:bg-emerald-950/20 dark:text-emerald-400 dark:border-emerald-900/30',
+    warning: 'bg-amber-50 text-amber-700 border border-amber-100/60 dark:bg-amber-950/20 dark:text-amber-400 dark:border-amber-900/30',
+    danger: 'bg-rose-50 text-rose-700 border border-rose-100/60 dark:bg-rose-950/20 dark:text-rose-400 dark:border-rose-900/30',
+    default: 'bg-zinc-50 text-zinc-600 border border-zinc-200/50 dark:bg-zinc-800/30 dark:text-zinc-400 dark:border-zinc-800/60',
   };
 
   return (
-    <span className={`px-2.5 py-0.5 rounded-full text-xs font-medium ${variants[variant]}`}>
+    <span className={`px-2.5 py-0.5 rounded-full text-[11px] font-semibold tracking-wide border ${variants[variant]}`}>
       {children}
     </span>
   );

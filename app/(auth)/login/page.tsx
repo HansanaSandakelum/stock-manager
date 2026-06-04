@@ -47,13 +47,19 @@ export default function LoginPage() {
   });
 
   return (
-    <div className="min-h-screen flex items-center justify-center p-4 bg-zinc-50 dark:bg-zinc-950 font-sans">
-      <div className="w-full max-w-[400px] bg-white dark:bg-zinc-900 rounded-[24px] shadow-sm border border-zinc-200 dark:border-zinc-800 p-8 sm:p-10">
+    <div className="relative min-h-screen flex items-center justify-center p-4 bg-[#FAFBFC] dark:bg-[#09090B] font-sans overflow-hidden">
+      {/* Ambient background glows */}
+      <div className="absolute inset-0 -z-10 overflow-hidden">
+        <div className="absolute -top-[30%] -left-[10%] w-[60%] h-[60%] rounded-full bg-indigo-500/10 blur-[130px] dark:bg-indigo-500/5" />
+        <div className="absolute -bottom-[30%] -right-[10%] w-[60%] h-[60%] rounded-full bg-blue-500/10 blur-[130px] dark:bg-blue-500/5" />
+      </div>
+
+      <div className="relative overflow-hidden w-full max-w-[420px] backdrop-blur-md bg-white/70 dark:bg-[#0c0c14]/70 border border-zinc-200/50 dark:border-zinc-800/50 rounded-[28px] shadow-[0_20px_50px_rgba(0,0,0,0.03)] dark:shadow-[0_20px_50px_rgba(0,0,0,0.25)] p-8 sm:p-10 transition-all duration-300">
         <div className="flex flex-col items-center mb-10">
-          <div className="w-12 h-12 bg-zinc-900 dark:bg-zinc-100 rounded-2xl flex items-center justify-center mb-6 shadow-md">
-            <Package className="w-6 h-6 text-white dark:text-zinc-900" />
+          <div className="w-12 h-12 bg-gradient-to-tr from-indigo-600 to-blue-600 rounded-2xl flex items-center justify-center mb-5 shadow-lg shadow-indigo-500/20 dark:shadow-indigo-500/10 hover:scale-105 transition-transform duration-300">
+            <Package className="w-6 h-6 text-white" />
           </div>
-          <h1 className="text-2xl sm:text-3xl font-semibold tracking-tight text-zinc-900 dark:text-zinc-100">
+          <h1 className="text-2xl sm:text-3xl font-semibold tracking-tight text-zinc-900 dark:text-zinc-50">
             Welcome back
           </h1>
           <p className="text-sm text-zinc-500 dark:text-zinc-400 mt-2 text-center">
@@ -72,7 +78,7 @@ export default function LoginPage() {
             value={formik.values.email}
             error={formik.touched.email && formik.errors.email ? formik.errors.email : undefined}
             placeholder="name@example.com"
-            className="h-11 rounded-xl bg-zinc-50/50 dark:bg-zinc-800/50"
+            className="h-11"
           />
           <Input
             label="Password"
@@ -84,24 +90,25 @@ export default function LoginPage() {
             value={formik.values.password}
             error={formik.touched.password && formik.errors.password ? formik.errors.password : undefined}
             placeholder="••••••••"
-            className="h-11 rounded-xl bg-zinc-50/50 dark:bg-zinc-800/50"
+            className="h-11"
           />
           <Button 
             type="submit" 
-            className="w-full h-11 rounded-xl bg-zinc-900 hover:bg-zinc-800 dark:bg-zinc-100 dark:hover:bg-zinc-200 text-white dark:text-zinc-900 font-medium transition-all group mt-2"
+            variant="primary"
+            className="w-full h-11 group mt-2"
             isLoading={loading}
           >
             Sign In
-            {!loading && <ArrowRight className="w-4 h-4 ml-1 group-hover:translate-x-1 transition-transform" />}
+            {!loading && <ArrowRight className="w-4 h-4 group-hover:translate-x-0.5 transition-transform" />}
           </Button>
         </form>
 
-        <p className="text-center text-sm text-zinc-500 dark:text-zinc-400 mt-8">
+        {/* <p className="text-center text-sm text-zinc-500 dark:text-zinc-400 mt-8">
           Don't have an account?{' '}
-          <Link href="/register" className="text-zinc-900 dark:text-zinc-100 font-medium hover:underline underline-offset-4">
+          <Link href="/register" className="text-indigo-600 dark:text-indigo-400 font-semibold hover:underline underline-offset-4 hover:text-indigo-500 dark:hover:text-indigo-300 transition-colors">
             Create account
           </Link>
-        </p>
+        </p> */}
       </div>
     </div>
   );

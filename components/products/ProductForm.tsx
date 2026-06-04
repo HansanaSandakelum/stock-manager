@@ -6,6 +6,7 @@ import { Card } from '@/components/ui/Card';
 import { Input } from '@/components/ui/Input';
 import { Button } from '@/components/ui/Button';
 import { toast } from '@/components/ui/Toast';
+import { Select } from '@/components/ui/Select';
 
 interface ProductFormProps {
   initialData?: any;
@@ -110,18 +111,12 @@ export function ProductForm({ initialData, isEditing }: ProductFormProps) {
 
           <div className="space-y-1.5">
             <label className="text-sm font-medium text-zinc-700 dark:text-zinc-300">Category</label>
-            <select
-              name="category"
+            <Select
               value={formData.category}
-              onChange={handleChange}
-              className="w-full px-3 py-2 bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-xl text-sm transition-all focus:outline-none focus:ring-2 focus:ring-zinc-900 dark:focus:ring-zinc-100 text-zinc-900 dark:text-zinc-100"
-              required
-            >
-              <option value="">Select a category</option>
-              {categories.map(cat => (
-                <option key={cat._id} value={cat._id}>{cat.name}</option>
-              ))}
-            </select>
+              onChange={(value) => setFormData(prev => ({ ...prev, category: value }))}
+              options={categories.map(cat => ({ value: cat._id, label: cat.name }))}
+              placeholder="Select a category"
+            />
           </div>
 
           <Input
