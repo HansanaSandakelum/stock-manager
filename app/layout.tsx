@@ -9,6 +9,9 @@ const plusJakartaSans = Plus_Jakarta_Sans({ subsets: ["latin"] });
 export const metadata: Metadata = {
   title: "Stock Manager",
   description: "Modern Stock Management System",
+  icons: {
+    icon: "/icon.svg",
+  },
 };
 
 export default function RootLayout({
