@@ -317,45 +317,46 @@ export default function UsersPage() {
         ) : (
           <div className="overflow-x-auto">
             <table className="w-full text-xs text-left">
-              <thead className="bg-zinc-50/50 dark:bg-zinc-900/40 border-b border-zinc-100 dark:border-zinc-800/80 text-[10px] font-semibold uppercase tracking-wider text-zinc-400 dark:text-zinc-500">
+              <thead className="bg-zinc-50/50 dark:bg-zinc-900/40 border-b border-zinc-100 dark:border-zinc-800/80 text-[10px] font-semibold uppercase tracking-wider text-zinc-400 dark:text-zinc-505">
                 <tr>
-                  <th className="px-6 py-4.5 font-semibold">User</th>
-                  <th className="px-6 py-4.5 font-semibold">Email</th>
-                  <th className="px-6 py-4.5 font-semibold text-center">Role</th>
-                  <th className="px-6 py-4.5 font-semibold">Registered</th>
-                  <th className="px-6 py-4.5 font-semibold text-right">Actions</th>
+                  <th className="px-3 sm:px-6 py-3 sm:py-4.5 font-semibold">User</th>
+                  <th className="px-3 sm:px-6 py-3 sm:py-4.5 font-semibold hidden sm:table-cell">Email</th>
+                  <th className="px-3 sm:px-6 py-3 sm:py-4.5 font-semibold text-center">Role</th>
+                  <th className="px-3 sm:px-6 py-3 sm:py-4.5 font-semibold hidden sm:table-cell">Registered</th>
+                  <th className="px-3 sm:px-6 py-3 sm:py-4.5 font-semibold text-right">Actions</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-zinc-100 dark:divide-zinc-800/60">
                 {users.map((user) => (
                   <tr key={user._id} className="hover:bg-zinc-50/30 dark:hover:bg-zinc-900/10 transition-colors">
-                    <td className="px-6 py-4 font-semibold text-zinc-800 dark:text-zinc-150 flex items-center gap-3">
+                    <td className="px-3 sm:px-6 py-3 sm:py-4 font-semibold text-zinc-800 dark:text-zinc-150 flex items-center gap-3">
                       <div className="w-8 h-8 rounded-xl bg-gradient-to-tr from-indigo-50 to-blue-50 dark:from-indigo-950/20 dark:to-blue-950/20 text-indigo-600 dark:text-indigo-400 flex items-center justify-center font-bold text-xs border border-indigo-100/50 dark:border-indigo-900/30">
                         {user.name.charAt(0).toUpperCase()}
                       </div>
                       <div className="flex flex-col">
                         <span className="text-zinc-900 dark:text-zinc-100">{user.name}</span>
+                        <span className="text-[10px] text-zinc-400 dark:text-zinc-505 sm:hidden mt-0.5">{user.email}</span>
                         {(session?.user as any)?.id === user._id && (
                           <span className="text-[10px] text-indigo-500 font-medium">(You)</span>
                         )}
                       </div>
                     </td>
-                    <td className="px-6 py-4 text-zinc-500 dark:text-zinc-400">
+                    <td className="px-3 sm:px-6 py-3 sm:py-4 text-zinc-500 dark:text-zinc-400 hidden sm:table-cell">
                       <div className="flex items-center gap-1.5">
                         <Mail className="w-3.5 h-3.5 text-zinc-400" />
                         {user.email}
                       </div>
                     </td>
-                    <td className="px-6 py-4 text-center">
+                    <td className="px-3 sm:px-6 py-3 sm:py-4 text-center">
                       {getRoleBadge(user.role)}
                     </td>
-                    <td className="px-6 py-4 text-zinc-500 dark:text-zinc-400">
+                    <td className="px-3 sm:px-6 py-3 sm:py-4 text-zinc-500 dark:text-zinc-400 hidden sm:table-cell">
                       <div className="flex items-center gap-1.5">
                         <Calendar className="w-3.5 h-3.5 text-zinc-400" />
                         {formatDate(user.createdAt)}
                       </div>
                     </td>
-                    <td className="px-6 py-4 text-right space-x-1.5">
+                    <td className="px-3 sm:px-6 py-3 sm:py-4 text-right space-x-1.5">
                       <button 
                         onClick={() => openEditModal(user)}
                         className="p-2 text-zinc-400 hover:text-zinc-900 dark:hover:text-zinc-200 transition-colors rounded-lg hover:bg-zinc-50 dark:hover:bg-zinc-900 inline-flex active:scale-95 cursor-pointer border-none"

@@ -323,11 +323,11 @@ export default function ProductLogPage() {
               <table className="w-full text-xs text-left">
                 <thead className="bg-zinc-50/50 dark:bg-zinc-900/40 border-b border-zinc-100 dark:border-zinc-800/80 text-[10px] font-semibold uppercase tracking-wider text-zinc-400 dark:text-zinc-500">
                   <tr>
-                    <th className="px-5 py-3.5 font-semibold w-52">Timestamp</th>
-                    <th className="px-5 py-3.5 font-semibold text-center w-24">Type</th>
-                    <th className="px-5 py-3.5 font-semibold text-right w-32">Delta Quantity</th>
-                    <th className="px-5 py-3.5 font-semibold w-40">Recorded By</th>
-                    <th className="px-5 py-3.5 font-semibold">Note / Reason</th>
+                    <th className="px-3 sm:px-5 py-2.5 sm:py-3.5 font-semibold w-52">Timestamp</th>
+                    <th className="px-3 sm:px-5 py-2.5 sm:py-3.5 font-semibold text-center w-24">Type</th>
+                    <th className="px-3 sm:px-5 py-2.5 sm:py-3.5 font-semibold text-right w-32">Delta Quantity</th>
+                    <th className="px-3 sm:px-5 py-2.5 sm:py-3.5 font-semibold w-40 hidden sm:table-cell">Recorded By</th>
+                    <th className="px-3 sm:px-5 py-2.5 sm:py-3.5 font-semibold hidden sm:table-cell">Note / Reason</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-zinc-100 dark:divide-zinc-800/60">
@@ -336,15 +336,15 @@ export default function ProductLogPage() {
                     return (
                       <tr key={tx._id} className="hover:bg-zinc-50/30 dark:hover:bg-zinc-900/10 transition-colors">
                         {/* Timestamp */}
-                        <td className="px-5 py-3.5 text-zinc-500 dark:text-zinc-400 font-medium whitespace-nowrap">
+                        <td className="px-3 sm:px-5 py-3 text-zinc-500 dark:text-zinc-400 font-medium whitespace-nowrap">
                           <div className="flex items-center gap-1.5">
-                            <Calendar className="w-3.5 h-3.5 text-zinc-350 dark:text-zinc-600 flex-shrink-0" />
+                            <Calendar className="w-3.5 h-3.5 text-zinc-350 dark:text-zinc-650 flex-shrink-0" />
                             <span>{fmtDate(tx.date ?? tx.createdAt)}</span>
                           </div>
                         </td>
 
                         {/* IN / OUT Badge */}
-                        <td className="px-5 py-3.5 text-center">
+                        <td className="px-3 sm:px-5 py-3 text-center">
                           <span className={`inline-flex items-center justify-center text-[9px] font-bold px-2 py-0.5 rounded-full border ${
                             isIn
                               ? 'bg-emerald-50 text-emerald-700 border-emerald-100 dark:bg-emerald-950/20 dark:text-emerald-400 dark:border-emerald-900/20'
@@ -355,17 +355,17 @@ export default function ProductLogPage() {
                         </td>
 
                         {/* Quantity */}
-                        <td className={`px-5 py-3.5 text-right font-extrabold tabular-nums text-sm ${isIn ? 'text-emerald-600 dark:text-emerald-400' : 'text-rose-600 dark:text-rose-400'}`}>
+                        <td className={`px-3 sm:px-5 py-3 text-right font-extrabold tabular-nums text-sm ${isIn ? 'text-emerald-600 dark:text-emerald-400' : 'text-rose-600 dark:text-rose-400'}`}>
                           {isIn ? `+${tx.quantity}` : `-${tx.quantity}`}
                         </td>
 
                         {/* Recorded By */}
-                        <td className="px-5 py-3.5 text-zinc-500 dark:text-zinc-400 font-medium">
+                        <td className="px-3 sm:px-5 py-3 text-zinc-505 dark:text-zinc-400 font-medium hidden sm:table-cell">
                           {tx.createdBy?.name || '-'}
                         </td>
 
                         {/* Notes */}
-                        <td className="px-5 py-3.5 text-zinc-600 dark:text-zinc-400 max-w-sm truncate italic">
+                        <td className="px-3 sm:px-5 py-3 text-zinc-600 dark:text-zinc-400 max-w-sm truncate italic hidden sm:table-cell">
                           {tx.note || '-'}
                         </td>
                       </tr>
