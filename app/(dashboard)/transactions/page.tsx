@@ -216,39 +216,41 @@ export default function TransactionsPage() {
           <>
             <div className="overflow-x-auto">
               <table className="w-full text-xs text-left">
-                <thead className="bg-zinc-50/50 dark:bg-zinc-900/40 border-b border-zinc-100 dark:border-zinc-800/80 text-[10px] font-semibold uppercase tracking-wider text-zinc-400 dark:text-zinc-500">
+                <thead className="bg-zinc-50/50 dark:bg-zinc-900/40 border-b border-zinc-100 dark:border-zinc-800/80 text-[10px] font-semibold uppercase tracking-wider text-zinc-400 dark:text-zinc-505">
                   <tr>
-                    <th className="px-6 py-4.5 font-semibold">Date</th>
-                    <th className="px-6 py-4.5 font-semibold">Product</th>
-                    <th className="px-6 py-4.5 font-semibold text-center">Type</th>
-                    <th className="px-6 py-4.5 font-semibold text-right">Quantity</th>
-                    <th className="px-6 py-4.5 font-semibold">Created By</th>
-                    <th className="px-6 py-4.5 font-semibold">Note</th>
+                    <th className="px-3 sm:px-6 py-3 sm:py-4.5 font-semibold">Date</th>
+                    <th className="px-3 sm:px-6 py-3 sm:py-4.5 font-semibold">Product</th>
+                    <th className="px-3 sm:px-6 py-3 sm:py-4.5 font-semibold text-center">Type</th>
+                    <th className="px-3 sm:px-6 py-3 sm:py-4.5 font-semibold text-right">Quantity</th>
+                    <th className="px-3 sm:px-6 py-3 sm:py-4.5 font-semibold hidden sm:table-cell">Created By</th>
+                    <th className="px-3 sm:px-6 py-3 sm:py-4.5 font-semibold hidden sm:table-cell">Note</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-zinc-100 dark:divide-zinc-800/60">
                   {paginated.map((t) => (
                     <tr key={t._id} className="hover:bg-zinc-50/30 dark:hover:bg-zinc-900/10 transition-colors">
-                      <td className="px-6 py-4 text-zinc-500 dark:text-zinc-400 font-medium">
-                        <div className="flex items-center gap-1.5">
+                      <td className="px-3 sm:px-6 py-3 sm:py-4 text-zinc-500 dark:text-zinc-400 font-medium">
+                        <div className="flex items-center gap-1.5 whitespace-nowrap">
                           <Clock className="w-3.5 h-3.5 text-zinc-350 dark:text-zinc-650" />
                           {new Date(t.date).toLocaleDateString('en-LK', { day: '2-digit', month: 'short', year: 'numeric' })}
                         </div>
                       </td>
-                      <td className="px-6 py-4 font-semibold text-zinc-800 dark:text-zinc-150">
-                        {t.product?.name || 'Deleted Product'} 
-                        <span className="text-zinc-400 dark:text-zinc-500 font-mono text-[10px] ml-2">({t.product?.sku || 'N/A'})</span>
+                      <td className="px-3 sm:px-6 py-3 sm:py-4 font-semibold text-zinc-800 dark:text-zinc-155">
+                        <div className="flex flex-col sm:flex-row sm:items-center sm:gap-2">
+                          <span className="truncate max-w-[120px] sm:max-w-none">{t.product?.name || 'Deleted Product'}</span>
+                          <span className="text-zinc-400 dark:text-zinc-500 font-mono text-[9px] sm:text-[10px]">({t.product?.sku || 'N/A'})</span>
+                        </div>
                       </td>
-                      <td className="px-6 py-4 text-center">
+                      <td className="px-3 sm:px-6 py-3 sm:py-4 text-center">
                         <Badge variant={t.type === 'in' ? 'success' : 'danger'}>
                           {t.type === 'in' ? 'IN' : 'OUT'}
                         </Badge>
                       </td>
-                      <td className={`px-6 py-4 text-right font-extrabold tabular-nums ${t.type === 'in' ? 'text-emerald-600 dark:text-emerald-400' : 'text-rose-600 dark:text-rose-400'}`}>
+                      <td className={`px-3 sm:px-6 py-3 sm:py-4 text-right font-extrabold tabular-nums ${t.type === 'in' ? 'text-emerald-600 dark:text-emerald-400' : 'text-rose-600 dark:text-rose-400'}`}>
                         {t.type === 'in' ? `+${t.quantity}` : `-${t.quantity}`}
                       </td>
-                      <td className="px-6 py-4 text-zinc-500 dark:text-zinc-400 font-medium">{t.createdBy?.name || '—'}</td>
-                      <td className="px-6 py-4 text-zinc-600 dark:text-zinc-405 max-w-[200px] truncate italic">{t.note || '—'}</td>
+                      <td className="px-3 sm:px-6 py-3 sm:py-4 text-zinc-500 dark:text-zinc-400 font-medium hidden sm:table-cell">{t.createdBy?.name || '—'}</td>
+                      <td className="px-3 sm:px-6 py-3 sm:py-4 text-zinc-600 dark:text-zinc-405 max-w-[200px] truncate italic hidden sm:table-cell">{t.note || '—'}</td>
                     </tr>
                   ))}
                 </tbody>

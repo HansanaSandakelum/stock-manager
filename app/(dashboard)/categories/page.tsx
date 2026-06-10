@@ -137,10 +137,10 @@ export default function CategoriesPage() {
         ) : (
           <div className="overflow-x-auto">
             <table className="w-full text-xs text-left">
-              <thead className="bg-zinc-50/50 dark:bg-zinc-900/40 border-b border-zinc-100 dark:border-zinc-800/80 text-[10px] font-semibold uppercase tracking-wider text-zinc-400 dark:text-zinc-500">
+              <thead className="bg-zinc-50/50 dark:bg-zinc-900/40 border-b border-zinc-100 dark:border-zinc-800/80 text-[10px] font-semibold uppercase tracking-wider text-zinc-400 dark:text-zinc-505">
                 <tr>
                   <th className="px-6 py-4.5 font-semibold">Name</th>
-                  <th className="px-6 py-4.5 font-semibold">Description</th>
+                  <th className="px-6 py-4.5 font-semibold hidden sm:table-cell">Description</th>
                   <th className="px-6 py-4.5 font-semibold">Products</th>
                   <th className="px-6 py-4.5 font-semibold text-right">Actions</th>
                 </tr>
@@ -149,7 +149,7 @@ export default function CategoriesPage() {
                 {categories.map((category) => (
                   <tr key={category._id} className="hover:bg-zinc-50/30 dark:hover:bg-zinc-900/10 transition-colors">
                     <td className="px-6 py-4 font-semibold text-zinc-800 dark:text-zinc-150">{category.name}</td>
-                    <td className="px-6 py-4 text-zinc-500 dark:text-zinc-400">{category.description || '—'}</td>
+                    <td className="px-6 py-4 text-zinc-550 dark:text-zinc-400 hidden sm:table-cell">{category.description || '—'}</td>
                     <td className="px-6 py-4">
                       <Badge variant="default">
                         {category.productCount || 0} products

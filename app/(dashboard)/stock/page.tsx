@@ -15,11 +15,19 @@ import {
   RefreshCw,
   ChevronLeft,
   ChevronRight,
+  ArrowDownToLine,
+  ArrowUpFromLine,
+  CalendarDays,
+  FileText,
+  Hash,
 } from "lucide-react";
 import { Card } from "@/components/ui/Card";
 import { Badge } from "@/components/ui/Badge";
 import { Skeleton } from "@/components/ui/Skeleton";
 import { toast } from "@/components/ui/Toast";
+import { Modal } from "@/components/ui/Modal";
+import { Input } from "@/components/ui/Input";
+import { Button } from "@/components/ui/Button";
 
 // == Types ==
 interface Product {
@@ -33,6 +41,16 @@ interface Product {
   image?: string;
 }
 
+interface StockDialogState {
+  open: boolean;
+  type: "in" | "out";
+  product: Product | null;
+  quantity: string;
+  note: string;
+  date: string;
+  saving: boolean;
+}
+
 const PAGE_SIZE = 10;
 
 function stockVariant(
@@ -42,177 +60,6 @@ function stockVariant(
   if (qty === 0) return "danger";
   if (qty <= thr) return "warning";
   return "success";
-}
-
-// == Shared delta state lifted per-row ==
-// Each row has its own delta; we expose two cells from the same state.
-
-interface AdjustState {
-  delta: number;
-  saving: boolean;
-}
-
-// == Adjust Input Cell (- [qty] +) ==
-function AdjustInputCell({
-  product,
-  state,
-  onChange,
-}: {
-  product: Product;
-  state: AdjustState;
-  onChange: (delta: number) => void;
-}) {
-  const { delta } = state;
-  const newQty = Math.max(0, product.quantity + delta);
-  const changed = delta !== 0;
-
-  return (
-    <div className="flex items-center justify-end gap-1.5 w-full">
-      {/* - */}
-      <button
-        onClick={() => onChange(Math.max(-product.quantity, delta - 1))}
-        disabled={product.quantity + delta <= 0}
-        className="w-7 h-7 rounded-lg border border-zinc-200 dark:border-zinc-700 flex items-center justify-center text-zinc-500 dark:text-zinc-400 hover:border-rose-400 hover:text-rose-600 dark:hover:border-rose-500 dark:hover:text-rose-400 disabled:opacity-30 disabled:cursor-not-allowed transition-all active:scale-90 cursor-pointer flex-shrink-0"
-        aria-label="Decrease"
-      >
-        <Minus className="w-3 h-3" />
-      </button>
-
-      {/* Number input */}
-      <div className="relative w-[68px] flex-shrink-0">
-        <input
-          type="number"
-          value={newQty}
-          onChange={(e) =>
-            onChange(
-              Math.max(
-                -product.quantity,
-                Number(e.target.value) - product.quantity,
-              ),
-            )
-          }
-          className={`w-full text-center text-sm font-bold py-1 rounded-lg border transition-all outline-none [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none
-            ${
-              changed
-                ? "border-indigo-400 dark:border-indigo-500 bg-indigo-50 dark:bg-indigo-950/30 text-indigo-700 dark:text-indigo-300 ring-2 ring-indigo-400/20"
-                : "border-zinc-200 dark:border-zinc-700 bg-white dark:bg-zinc-900 text-zinc-800 dark:text-zinc-150"
-            }`}
-          min={0}
-        />
-      </div>
-
-      {/* + */}
-      <button
-        onClick={() => onChange(delta + 1)}
-        className="w-7 h-7 rounded-lg border border-zinc-200 dark:border-zinc-700 flex items-center justify-center text-zinc-500 dark:text-zinc-400 hover:border-emerald-400 hover:text-emerald-600 dark:hover:border-emerald-500 dark:hover:text-emerald-400 transition-all active:scale-90 cursor-pointer flex-shrink-0"
-        aria-label="Increase"
-      >
-        <Plus className="w-3 h-3" />
-      </button>
-    </div>
-  );
-}
-
-// == Pending Change Badge Cell ==
-function ChangeCell({ delta }: { delta: number }) {
-  if (delta === 0) {
-    return (
-      <div className="flex items-center justify-center select-none w-full">
-        <span className="text-[10px] text-zinc-300 dark:text-zinc-600">-</span>
-      </div>
-    );
-  }
-
-  const isPositive = delta > 0;
-
-  return (
-    <div className="flex items-center justify-center w-full">
-      <span
-        className={`inline-flex items-center gap-1 text-[10px] font-bold px-2 py-0.5 rounded-full border tabular-nums ${
-          isPositive
-            ? "bg-emerald-50 text-emerald-700 border-emerald-200 dark:bg-emerald-950/30 dark:text-emerald-400 dark:border-emerald-900/30"
-            : "bg-rose-50 text-rose-700 border-rose-100 dark:bg-rose-950/20 dark:text-rose-400 dark:border-rose-900/20"
-        }`}
-      >
-        {isPositive ? (
-          <TrendingUp className="w-2.5 h-2.5 flex-shrink-0" />
-        ) : (
-          <TrendingDown className="w-2.5 h-2.5 flex-shrink-0" />
-        )}
-        <span>{isPositive ? `+${delta}` : delta}</span>
-      </span>
-    </div>
-  );
-}
-
-// == Confirm / Cancel Action Cell ==
-function ActionCell({
-  product,
-  state,
-  onCommit,
-  onCancel,
-}: {
-  product: Product;
-  state: AdjustState;
-  onCommit: () => void;
-  onCancel: () => void;
-}) {
-  const { delta, saving } = state;
-  const changed = delta !== 0;
-
-  if (!changed) {
-    return (
-      <div className="flex items-center justify-center h-7 select-none w-full">
-        <span className="text-[10px] text-zinc-300 dark:text-zinc-600">-</span>
-      </div>
-    );
-  }
-
-  const newQty = Math.max(0, product.quantity + delta);
-
-  return (
-    <div className="flex items-center justify-center gap-1.5 h-7 w-full">
-      {/* Confirm */}
-      <button
-        onClick={onCommit}
-        disabled={saving}
-        id={`confirm-${product._id}`}
-        className="h-7 px-2.5 rounded-lg bg-indigo-600 hover:bg-indigo-500 text-white text-[11px] font-semibold flex items-center gap-1 transition-all active:scale-90 disabled:opacity-50 cursor-pointer shadow-sm whitespace-nowrap"
-        aria-label="Confirm adjustment"
-      >
-        {saving ? (
-          <svg className="animate-spin w-3 h-3" viewBox="0 0 24 24" fill="none">
-            <circle
-              cx="12"
-              cy="12"
-              r="10"
-              stroke="currentColor"
-              strokeWidth="4"
-              className="opacity-25"
-            />
-            <path
-              fill="currentColor"
-              d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"
-              className="opacity-75"
-            />
-          </svg>
-        ) : (
-          <Check className="w-3 h-3" />
-        )}
-        <span>{saving ? "Saving..." : `Apply`}</span>
-      </button>
-
-      {/* Cancel */}
-      <button
-        onClick={onCancel}
-        disabled={saving}
-        className="w-7 h-7 rounded-lg border border-zinc-200 dark:border-zinc-700 text-zinc-400 hover:text-rose-500 hover:border-rose-300 dark:hover:border-rose-700 flex items-center justify-center transition-all active:scale-90 cursor-pointer disabled:opacity-40"
-        aria-label="Cancel"
-      >
-        <X className="w-3 h-3" />
-      </button>
-    </div>
-  );
 }
 
 // == Pagination Controls ==
@@ -313,19 +160,33 @@ export default function StockHandlingPage() {
   >("all");
   const [page, setPage] = useState(1);
 
-  // Per-row adjust state: productId -> { delta, saving }
-  const [adjustStates, setAdjustStates] = useState<Record<string, AdjustState>>(
-    {},
-  );
+  // Stock In/Out Dialog State
+  const [dialog, setDialog] = useState<StockDialogState>({
+    open: false,
+    type: "in",
+    product: null,
+    quantity: "",
+    note: "",
+    date: new Date().toISOString().slice(0, 16), // datetime-local format
+    saving: false,
+  });
 
-  const getState = (id: string): AdjustState =>
-    adjustStates[id] ?? { delta: 0, saving: false };
+  const openDialog = (product: Product, type: "in" | "out") => {
+    setDialog({
+      open: true,
+      type,
+      product,
+      quantity: "",
+      note: "",
+      date: new Date().toISOString().slice(0, 16),
+      saving: false,
+    });
+  };
 
-  const setDelta = (id: string, delta: number) =>
-    setAdjustStates((prev) => ({ ...prev, [id]: { ...getState(id), delta } }));
-
-  const setSaving = (id: string, saving: boolean) =>
-    setAdjustStates((prev) => ({ ...prev, [id]: { ...getState(id), saving } }));
+  const closeDialog = () => {
+    if (dialog.saving) return;
+    setDialog((prev) => ({ ...prev, open: false }));
+  };
 
   // == Data fetching ==
   const fetchProducts = useCallback(async (silent = false) => {
@@ -346,61 +207,61 @@ export default function StockHandlingPage() {
     fetchProducts();
   }, [fetchProducts]);
 
-  // == Commit adjustment ==
-  const handleCommit = useCallback(
-    async (product: Product) => {
-      const state = adjustStates[product._id] ?? { delta: 0, saving: false };
-      const { delta } = state;
-      if (delta === 0) return;
-      setSaving(product._id, true);
+  // == Handle Dialog Submit ==
+  const handleDialogSubmit = useCallback(async () => {
+    if (!dialog.product) return;
+    const quantity = parseInt(dialog.quantity);
+    if (!quantity || quantity <= 0) {
+      toast("Please enter a valid quantity", "error");
+      return;
+    }
 
-      const type: "in" | "out" = delta > 0 ? "in" : "out";
-      const quantity = Math.abs(delta);
-      const newQty = Math.max(0, product.quantity + delta);
+    if (dialog.type === "out" && quantity > dialog.product.quantity) {
+      toast(
+        `Insufficient stock. Current quantity is ${dialog.product.quantity}`,
+        "error",
+      );
+      return;
+    }
 
-      try {
-        const res = await fetch("/api/transactions", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            product: product._id,
-            type,
-            quantity,
-            note: `Manual adjustment ${delta > 0 ? "+" : ""}${delta}`,
-            date: new Date().toISOString(),
-          }),
-        });
-        const data = await res.json();
-        if (!res.ok) throw new Error(data.error || "Failed");
+    setDialog((prev) => ({ ...prev, saving: true }));
 
-        toast(
-          `${product.name}: ${delta > 0 ? "+" : ""}${delta} -> ${newQty} units`,
-          "success",
-        );
-        setProducts((ps) =>
-          ps.map((p) =>
-            p._id === product._id ? { ...p, quantity: newQty } : p,
-          ),
-        );
-        setAdjustStates((prev) => {
-          const n = { ...prev };
-          delete n[product._id];
-          return n;
-        });
-      } catch (e: any) {
-        toast(e.message, "error");
-        setSaving(product._id, false);
-      }
-    },
-    [adjustStates],
-  );
+    try {
+      const res = await fetch("/api/transactions", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          product: dialog.product._id,
+          type: dialog.type,
+          quantity,
+          note:
+            dialog.note.trim() ||
+            `Stock ${dialog.type === "in" ? "In" : "Out"} – ${quantity} units`,
+          date: new Date(dialog.date).toISOString(),
+        }),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || "Failed");
 
-  const handleCancel = (id: string) =>
-    setAdjustStates((prev) => {
-      const n = { ...prev };
-      delete n[id];
-      return n;
-    });
+      const delta = dialog.type === "in" ? quantity : -quantity;
+      const newQty = Math.max(0, dialog.product.quantity + delta);
+
+      toast(
+        `${dialog.product.name}: ${delta > 0 ? "+" : ""}${delta} → ${newQty} units`,
+        "success",
+      );
+
+      setProducts((ps) =>
+        ps.map((p) =>
+          p._id === dialog.product!._id ? { ...p, quantity: newQty } : p,
+        ),
+      );
+      setDialog((prev) => ({ ...prev, open: false, saving: false }));
+    } catch (e: any) {
+      toast(e.message, "error");
+      setDialog((prev) => ({ ...prev, saving: false }));
+    }
+  }, [dialog]);
 
   // == Stats ==
   const total = products.length;
@@ -439,30 +300,30 @@ export default function StockHandlingPage() {
   const totalPages = Math.max(1, Math.ceil(filtered.length / PAGE_SIZE));
   const safePage = Math.min(page, totalPages);
   const paginated = filtered.slice(
-    (safePage - 1) * PAGE_SIZE,
+(safePage - 1) * PAGE_SIZE,
     safePage * PAGE_SIZE,
   );
 
-  // Total columns: Product | Category | Status | Price | Adjust | Change | Action | Log = 8
-  const COL_SPAN = 8;
+  // Total columns: Product | Category | Status | Price | Current Stock | Actions | Log = 7
+  const COL_SPAN = 7;
 
   return (
     <div className="space-y-4">
       {/* == Header == */}
-      <div className="flex items-center justify-between">
+      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
         <div>
           <h2 className="text-base font-semibold text-zinc-900 dark:text-zinc-100">
             Stock Handling
           </h2>
-          <p className="text-xs text-zinc-400 dark:text-zinc-500 mt-0.5">
-            Adjust stock directly, confirm in the Action column, or open the
-            history page.
+          <p className="text-xs text-zinc-400 dark:text-zinc-505 mt-0.5">
+            Use Stock In / Stock Out buttons to manage inventory with full
+            transaction details.
           </p>
         </div>
         <button
           onClick={() => fetchProducts(true)}
           disabled={refreshing}
-          className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium text-zinc-500 dark:text-zinc-400 hover:text-zinc-800 dark:hover:text-zinc-200 border border-zinc-200 dark:border-zinc-800 rounded-xl hover:bg-zinc-50 dark:hover:bg-zinc-900/40 transition-all active:scale-95 cursor-pointer disabled:opacity-50"
+          className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium text-zinc-505 dark:text-zinc-400 hover:text-zinc-800 dark:hover:text-zinc-200 border border-zinc-200 dark:border-zinc-800 rounded-xl hover:bg-zinc-50 dark:hover:bg-zinc-900/40 transition-all active:scale-95 cursor-pointer disabled:opacity-50 self-start sm:self-auto"
         >
           <RefreshCw
             className={`w-3.5 h-3.5 ${refreshing ? "animate-spin" : ""}`}
@@ -472,7 +333,7 @@ export default function StockHandlingPage() {
       </div>
 
       {/* == Stat strip == */}
-      <div className="grid grid-cols-4 gap-2">
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
         {[
           {
             label: "Products",
@@ -559,23 +420,22 @@ export default function StockHandlingPage() {
       {/* == Table == */}
       <Card className="p-0 overflow-hidden border border-zinc-100 dark:border-zinc-800/80">
         <div className="overflow-x-auto">
-          <table className="w-full text-xs table-fixed min-w-[700px]">
-            <thead className="bg-zinc-50/80 dark:bg-zinc-900/50 border-b border-zinc-100 dark:border-zinc-800/70 text-[10px] font-semibold uppercase tracking-wider text-zinc-400 dark:text-zinc-500">
+          <table className="w-full text-xs min-w-full md:min-w-[700px] md:table-fixed">
+            <thead className="bg-zinc-50/80 dark:bg-zinc-900/50 border-b border-zinc-100 dark:border-zinc-800/70 text-[10px] font-semibold uppercase tracking-wider text-zinc-400 dark:text-zinc-505">
               <tr>
-                <th className="px-4 py-3 text-left min-w-[180px]">Product</th>
-                <th className="px-3 py-3 text-left hidden sm:table-cell w-32">
+                <th className="px-4 py-3 text-left min-w-[120px] sm:min-w-[180px]">Product</th>
+                <th className="px-4 py-3 text-center w-36 sm:w-52">Actions</th>
+                <th className="px-3 py-3 text-center w-20 sm:w-28">Current Stock</th>
+                <th className="px-3 py-3 text-left hidden sm:table-cell sm:w-32">
                   Category
                 </th>
-                <th className="px-3 py-3 text-center hidden md:table-cell w-28">
+                <th className="px-3 py-3 text-center hidden md:table-cell md:w-28">
                   Status
                 </th>
-                <th className="px-3 py-3 text-right hidden lg:table-cell w-32">
+                <th className="px-3 py-3 text-right hidden lg:table-cell lg:w-32">
                   Price
                 </th>
-                <th className="px-4 py-3 text-right w-44">Adjust Stock</th>
-                <th className="px-3 py-3 text-center w-28">Change</th>
-                <th className="px-3 py-3 text-center w-40">Action</th>
-                <th className="px-3 py-3 text-center w-16">Log</th>
+                <th className="px-3 py-3 text-center w-12 sm:w-16">Log</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-zinc-100 dark:divide-zinc-800/50">
@@ -591,7 +451,7 @@ export default function StockHandlingPage() {
                 <tr>
                   <td colSpan={COL_SPAN} className="px-4 py-12 text-center">
                     <Package className="w-7 h-7 mx-auto mb-2 text-zinc-300 dark:text-zinc-600" />
-                    <p className="text-xs text-zinc-400 dark:text-zinc-500">
+                    <p className="text-xs text-zinc-400 dark:text-zinc-505">
                       {search
                         ? `No matches for "${search}"`
                         : "No products found"}
@@ -602,7 +462,6 @@ export default function StockHandlingPage() {
                 paginated.map((product) => {
                   const thr = product.lowStockThreshold ?? 10;
                   const variant = stockVariant(product.quantity, thr);
-                  const state = getState(product._id);
 
                   return (
                     <tr
@@ -610,7 +469,7 @@ export default function StockHandlingPage() {
                       className="transition-colors hover:bg-zinc-50/40 dark:hover:bg-zinc-900/10"
                     >
                       {/* Product */}
-                      <td className="px-4 py-2.5 min-w-[180px]">
+                      <td className="px-4 py-2.5 min-w-[120px] sm:min-w-[180px]">
                         <div className="flex items-center gap-2.5">
                           {product.image ? (
                             <img
@@ -620,27 +479,71 @@ export default function StockHandlingPage() {
                             />
                           ) : (
                             <div className="w-7 h-7 rounded-lg bg-indigo-50 dark:bg-indigo-950/20 border border-indigo-100/50 dark:border-indigo-900/20 flex items-center justify-center flex-shrink-0">
-                              <Package className="w-3.5 h-3.5 text-indigo-400 dark:text-indigo-500" />
+                              <Package className="w-3.5 h-3.5 text-indigo-400 dark:text-indigo-505" />
                             </div>
                           )}
                           <div className="min-w-0">
                             <p className="font-semibold text-zinc-800 dark:text-zinc-155 truncate max-w-[150px]">
                               {product.name}
                             </p>
-                            <p className="font-mono text-[9px] text-zinc-400 dark:text-zinc-500">
+                            <p className="font-mono text-[9px] text-zinc-400 dark:text-zinc-505">
                               {product.sku}
                             </p>
                           </div>
                         </div>
                       </td>
 
+                      {/* Stock In / Stock Out Buttons */}
+                      <td className="px-4 py-2.5 w-36 sm:w-52 text-center">
+                        <div className="flex items-center justify-center gap-2">
+                          <button
+                            id={`stock-in-${product._id}`}
+                            onClick={() => openDialog(product, "in")}
+                            className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-[11px] font-semibold transition-all active:scale-95 cursor-pointer
+                              bg-emerald-50 text-emerald-700 border border-emerald-200 hover:bg-emerald-100 hover:border-emerald-300 hover:shadow-sm hover:shadow-emerald-100
+                              dark:bg-emerald-950/20 dark:text-emerald-400 dark:border-emerald-800/40 dark:hover:bg-emerald-950/40 dark:hover:bg-emerald-700/50"
+                            aria-label={`Stock In ${product.name}`}
+                          >
+                            <ArrowDownToLine className="w-3 h-3" />
+                            <span className="hidden sm:inline">Stock </span>In
+                          </button>
+                          <button
+                            id={`stock-out-${product._id}`}
+                            onClick={() => openDialog(product, "out")}
+                            disabled={product.quantity === 0}
+                            className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-[11px] font-semibold transition-all active:scale-95 cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed
+                              bg-rose-50 text-rose-700 border border-rose-200 hover:bg-rose-100 hover:border-rose-300 hover:shadow-sm hover:shadow-rose-100
+                              dark:bg-rose-950/20 dark:text-rose-400 dark:border-rose-800/40 dark:hover:bg-rose-950/40 dark:hover:border-rose-700/50"
+                            aria-label={`Stock Out ${product.name}`}
+                          >
+                            <ArrowUpFromLine className="w-3 h-3" />
+                            <span className="hidden sm:inline">Stock </span>Out
+                          </button>
+                        </div>
+                      </td>
+
+                      {/* Current Stock */}
+                      <td className="px-3 py-2.5 w-20 sm:w-28 text-center">
+                        <span
+                          className={`inline-flex items-center gap-1 text-sm font-bold tabular-nums ${
+                            variant === "danger"
+                              ? "text-rose-605 dark:text-rose-400"
+                              : variant === "warning"
+                                ? "text-amber-600 dark:text-amber-400"
+                                : "text-zinc-800 dark:text-zinc-200"
+                          }`}
+                        >
+                          {product.quantity}
+                        </span>
+                      </td>
+
                       {/* Category */}
-                      <td className="px-3 py-2.5 text-zinc-500 dark:text-zinc-400 hidden sm:table-cell w-32 text-left truncate">
+                      <td className="px-3 py-2.5 text-zinc-505 dark:text-zinc-400 hidden sm:table-cell sm:w-32 text-left truncate">
                         {product.category?.name ?? "-"}
                       </td>
 
                       {/* Status */}
-                      <td className="px-3 py-2.5 text-center hidden md:table-cell w-28">
+                      <td className="px-3 py-2.5 text-center hidden md:table-cell md:w-28">
                         <Badge variant={variant}>
                           {variant === "success"
                             ? "In Stock"
@@ -651,44 +554,20 @@ export default function StockHandlingPage() {
                       </td>
 
                       {/* Price */}
-                      <td className="px-3 py-2.5 text-right text-zinc-500 dark:text-zinc-400 hidden lg:table-cell w-32 font-medium truncate">
+                      <td className="px-3 py-2.5 text-right text-zinc-505 dark:text-zinc-400 hidden lg:table-cell lg:w-32 font-medium truncate">
                         Rs.{" "}
                         {product.unitPrice?.toLocaleString("en-LK", {
                           minimumFractionDigits: 2,
                         })}
                       </td>
 
-                      {/* Adjust - [qty] + */}
-                      <td className="px-4 py-2.5 w-44 text-right">
-                        <AdjustInputCell
-                          product={product}
-                          state={state}
-                          onChange={(d) => setDelta(product._id, d)}
-                        />
-                      </td>
-
-                      {/* Change */}
-                      <td className="px-3 py-2.5 w-28 text-center">
-                        <ChangeCell delta={state.delta} />
-                      </td>
-
-                      {/* Confirm / Cancel */}
-                      <td className="px-3 py-2.5 w-40 text-center">
-                        <ActionCell
-                          product={product}
-                          state={state}
-                          onCommit={() => handleCommit(product)}
-                          onCancel={() => handleCancel(product._id)}
-                        />
-                      </td>
-
                       {/* Log Page Navigation */}
-                      <td className="px-3 py-2.5 text-center w-16">
+                      <td className="px-3 py-2.5 text-center w-12 sm:w-16">
                         <button
                           onClick={() =>
                             router.push(`/stock/${product._id}/log`)
                           }
-                          className="w-7 h-7 mx-auto flex items-center justify-center rounded-lg border border-zinc-200 dark:border-zinc-700 text-zinc-400 hover:border-indigo-300 hover:text-indigo-500 hover:bg-indigo-50/20 dark:hover:bg-indigo-950/20 transition-all cursor-pointer active:scale-90"
+                          className="w-7 h-7 mx-auto flex items-center justify-center rounded-lg border border-zinc-200 dark:border-zinc-700 text-zinc-400 hover:border-indigo-300 hover:text-indigo-505 hover:bg-indigo-50/20 dark:hover:bg-indigo-950/20 transition-all cursor-pointer active:scale-90"
                           aria-label="View change log"
                         >
                           <Clock className="w-3.5 h-3.5" />
@@ -713,6 +592,406 @@ export default function StockHandlingPage() {
           />
         )}
       </Card>
+
+      {/* == Stock In / Out Dialog == */}
+      <Modal
+        isOpen={dialog.open}
+        onClose={closeDialog}
+        title={
+          dialog.type === "in"
+            ? `Stock In – ${dialog.product?.name ?? ""}`
+            : `Stock Out – ${dialog.product?.name ?? ""}`
+        }
+      >
+        {dialog.product && (
+          <div className="space-y-5">
+            {/* Product Info Card */}
+            <div className="flex items-center gap-3 p-3 rounded-xl bg-zinc-50/80 dark:bg-zinc-900/40 border border-zinc-100 dark:border-zinc-800/60">
+              {dialog.product.image ? (
+                <img
+                  src={dialog.product.image}
+                  alt={dialog.product.name}
+                  className="w-10 h-10 rounded-xl object-cover border border-zinc-100 dark:border-zinc-800 flex-shrink-0"
+                />
+              ) : (
+                <div className="w-10 h-10 rounded-xl bg-indigo-50 dark:bg-indigo-950/20 border border-indigo-100/50 dark:border-indigo-900/20 flex items-center justify-center flex-shrink-0">
+                  <Package className="w-5 h-5 text-indigo-400 dark:text-indigo-500" />
+                </div>
+              )}
+              <div className="min-w-0 flex-1">
+                <p className="font-semibold text-sm text-zinc-800 dark:text-zinc-100 truncate">
+                  {dialog.product.name}
+                </p>
+                <div className="flex items-center gap-2 mt-0.5">
+                  <span className="font-mono text-[10px] text-zinc-400 dark:text-zinc-500">
+                    {dialog.product.sku}
+                  </span>
+                  {dialog.product.category?.name && (
+                    <>
+                      <span className="text-zinc-300 dark:text-zinc-700">
+                        •
+                      </span>
+                      <span className="text-[10px] text-zinc-400 dark:text-zinc-500">
+                        {dialog.product.category.name}
+                      </span>
+                    </>
+                  )}
+                </div>
+              </div>
+              <div className="text-right flex-shrink-0">
+                <p className="text-[10px] font-semibold text-zinc-400 dark:text-zinc-500 uppercase tracking-wider">
+                  Current
+                </p>
+                <p className="text-lg font-extrabold tabular-nums text-zinc-800 dark:text-zinc-100">
+                  {dialog.product.quantity}
+                </p>
+              </div>
+            </div>
+
+            {/* Type Indicator */}
+            <div
+              className={`flex items-center gap-2 px-3 py-2 rounded-xl text-xs font-semibold ${
+                dialog.type === "in"
+                  ? "bg-emerald-50 text-emerald-700 border border-emerald-200 dark:bg-emerald-950/20 dark:text-emerald-400 dark:border-emerald-800/40"
+                  : "bg-rose-50 text-rose-700 border border-rose-200 dark:bg-rose-950/20 dark:text-rose-400 dark:border-rose-800/40"
+              }`}
+            >
+              {dialog.type === "in" ? (
+                <ArrowDownToLine className="w-3.5 h-3.5" />
+              ) : (
+                <ArrowUpFromLine className="w-3.5 h-3.5" />
+              )}
+              <span>
+                {dialog.type === "in"
+                  ? "Adding stock to inventory"
+                  : "Removing stock from inventory"}
+              </span>
+            </div>
+
+            {/* Quantity */}
+            <div className="space-y-2.5">
+              <label className="flex items-center gap-1.5 text-sm font-medium text-zinc-700 dark:text-zinc-300">
+                <Hash className="w-3.5 h-3.5 text-zinc-400" />
+                Quantity <span className="text-rose-500">*</span>
+              </label>
+
+              {/* Stepper: [ - ]  [input]  [ + ] */}
+              <div className="flex items-center gap-1.5">
+                <button
+                  type="button"
+                  onClick={() => {
+                    const cur = parseInt(dialog.quantity) || 0;
+                    if (cur > 1)
+                      setDialog((prev) => ({
+                        ...prev,
+                        quantity: String(cur - 1),
+                      }));
+                  }}
+                  disabled={!dialog.quantity || parseInt(dialog.quantity) <= 1}
+                  className="w-10 h-10 flex-shrink-0 rounded-xl border border-zinc-200 dark:border-zinc-700 flex items-center justify-center text-zinc-500 dark:text-zinc-400 hover:border-rose-400 hover:text-rose-600 hover:bg-rose-50/50 dark:hover:border-rose-500 dark:hover:text-rose-400 dark:hover:bg-rose-950/20 disabled:opacity-30 disabled:cursor-not-allowed transition-all active:scale-90 cursor-pointer"
+                  aria-label="Decrease quantity"
+                >
+                  <Minus className="w-4 h-4" />
+                </button>
+
+                <input
+                  type="number"
+                  id="dialog-quantity"
+                  value={dialog.quantity}
+                  onChange={(e) => {
+                    const val = e.target.value;
+                    if (val === "") {
+                      setDialog((prev) => ({ ...prev, quantity: "" }));
+                      return;
+                    }
+                    const num = parseInt(val);
+                    if (isNaN(num) || num < 0) return;
+                    const maxVal =
+                      dialog.type === "out"
+                        ? dialog.product!.quantity
+                        : undefined;
+                    if (maxVal !== undefined && num > maxVal) {
+                      setDialog((prev) => ({
+                        ...prev,
+                        quantity: String(maxVal),
+                      }));
+                    } else {
+                      setDialog((prev) => ({
+                        ...prev,
+                        quantity: String(num),
+                      }));
+                    }
+                  }}
+                  placeholder="0"
+                  min={1}
+                  max={
+                    dialog.type === "out"
+                      ? dialog.product.quantity
+                      : undefined
+                  }
+                  className="flex-1 text-center text-lg font-bold px-3 py-2 bg-zinc-50/30 hover:bg-zinc-50/70 focus:bg-white dark:bg-zinc-900/30 dark:hover:bg-zinc-900/60 dark:focus:bg-zinc-900/90 border border-zinc-200 dark:border-zinc-800 rounded-xl transition-all focus:outline-none focus:border-indigo-500 focus:ring-4 focus:ring-indigo-500/5 [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none tabular-nums"
+                  autoFocus
+                />
+
+                <button
+                  type="button"
+                  onClick={() => {
+                    const cur = parseInt(dialog.quantity) || 0;
+                    const maxVal =
+                      dialog.type === "out"
+                        ? dialog.product!.quantity
+                        : Infinity;
+                    if (cur < maxVal)
+                      setDialog((prev) => ({
+                        ...prev,
+                        quantity: String(cur + 1),
+                      }));
+                  }}
+                  disabled={
+                    dialog.type === "out" &&
+                    parseInt(dialog.quantity) >= dialog.product.quantity
+                  }
+                  className="w-10 h-10 flex-shrink-0 rounded-xl border border-zinc-200 dark:border-zinc-700 flex items-center justify-center text-zinc-500 dark:text-zinc-400 hover:border-emerald-400 hover:text-emerald-600 hover:bg-emerald-50/50 dark:hover:border-emerald-500 dark:hover:text-emerald-400 dark:hover:bg-emerald-950/20 disabled:opacity-30 disabled:cursor-not-allowed transition-all active:scale-90 cursor-pointer"
+                  aria-label="Increase quantity"
+                >
+                  <Plus className="w-4 h-4" />
+                </button>
+              </div>
+
+              {/* Quick-add chips */}
+              <div className="space-y-1.5">
+                <p className="text-[10px] font-semibold text-zinc-400 dark:text-zinc-500 uppercase tracking-wider">
+                  Quick Add
+                </p>
+                <div className="flex flex-wrap gap-1.5">
+                  {[1, 5, 10, 25, 50, 100].map((n) => {
+                    const cur = parseInt(dialog.quantity) || 0;
+                    const maxVal =
+                      dialog.type === "out"
+                        ? dialog.product!.quantity
+                        : Infinity;
+                    const wouldExceed = cur + n > maxVal;
+
+                    return (
+                      <button
+                        key={n}
+                        type="button"
+                        disabled={wouldExceed}
+                        onClick={() => {
+                          const newVal = Math.min(cur + n, maxVal);
+                          setDialog((prev) => ({
+                            ...prev,
+                            quantity: String(newVal),
+                          }));
+                        }}
+                        className={`inline-flex items-center gap-1 px-2.5 py-1 rounded-lg text-[11px] font-semibold border transition-all active:scale-95 cursor-pointer disabled:opacity-30 disabled:cursor-not-allowed ${
+                          dialog.type === "in"
+                            ? "border-emerald-200 dark:border-emerald-800/40 text-emerald-700 dark:text-emerald-400 bg-emerald-50/60 dark:bg-emerald-950/15 hover:bg-emerald-100 hover:border-emerald-300 dark:hover:bg-emerald-950/30 dark:hover:border-emerald-700/50"
+                            : "border-rose-200 dark:border-rose-800/40 text-rose-700 dark:text-rose-400 bg-rose-50/60 dark:bg-rose-950/15 hover:bg-rose-100 hover:border-rose-300 dark:hover:bg-rose-950/30 dark:hover:border-rose-700/50"
+                        }`}
+                      >
+                        <Plus className="w-2.5 h-2.5" />
+                        {n}
+                      </button>
+                    );
+                  })}
+
+                  {/* Set-to presets */}
+                  {[
+                    ...(dialog.type === "out"
+                      ? [
+                          {
+                            label: "All",
+                            value: dialog.product.quantity,
+                          },
+                          {
+                            label: "Half",
+                            value: Math.floor(
+                              dialog.product.quantity / 2,
+                            ),
+                          },
+                        ]
+                      : []),
+                  ]
+                    .filter((p) => p.value > 0)
+                    .map((preset) => (
+                      <button
+                        key={preset.label}
+                        type="button"
+                        onClick={() =>
+                          setDialog((prev) => ({
+                            ...prev,
+                            quantity: String(preset.value),
+                          }))
+                        }
+                        className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg text-[11px] font-semibold border transition-all active:scale-95 cursor-pointer
+                          border-amber-200 dark:border-amber-800/40 text-amber-700 dark:text-amber-400 bg-amber-50/60 dark:bg-amber-950/15 hover:bg-amber-100 hover:border-amber-300 dark:hover:bg-amber-950/30 dark:hover:border-amber-700/50"
+                      >
+                        {preset.label}
+                        <span className="text-[9px] font-normal opacity-70">
+                          ({preset.value})
+                        </span>
+                      </button>
+                    ))}
+
+                  {/* Clear */}
+                  {dialog.quantity && parseInt(dialog.quantity) > 0 && (
+                    <button
+                      type="button"
+                      onClick={() =>
+                        setDialog((prev) => ({ ...prev, quantity: "" }))
+                      }
+                      className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg text-[11px] font-semibold border transition-all active:scale-95 cursor-pointer
+                        border-zinc-200 dark:border-zinc-700 text-zinc-500 dark:text-zinc-400 bg-zinc-50/60 dark:bg-zinc-900/30 hover:bg-zinc-100 hover:border-zinc-300 dark:hover:bg-zinc-800/50"
+                    >
+                      <X className="w-2.5 h-2.5" />
+                      Clear
+                    </button>
+                  )}
+                </div>
+              </div>
+
+              {/* Info line */}
+              {dialog.type === "out" && (
+                <p className="text-[10px] text-zinc-400 dark:text-zinc-500">
+                  Max available: {dialog.product.quantity} units
+                </p>
+              )}
+
+              {/* New quantity preview */}
+              {dialog.quantity &&
+                parseInt(dialog.quantity) > 0 && (
+                  <div className="flex items-center gap-2 px-3 py-2 rounded-xl bg-zinc-50/80 dark:bg-zinc-900/30 border border-zinc-100 dark:border-zinc-800/50">
+                    {dialog.type === "in" ? (
+                      <TrendingUp className="w-3.5 h-3.5 text-emerald-500 flex-shrink-0" />
+                    ) : (
+                      <TrendingDown className="w-3.5 h-3.5 text-rose-500 flex-shrink-0" />
+                    )}
+                    <span className="text-[11px] text-zinc-500 dark:text-zinc-400">
+                      New quantity:
+                    </span>
+                    <span className="text-sm font-bold text-zinc-800 dark:text-zinc-100 tabular-nums">
+                      {dialog.type === "in"
+                        ? dialog.product.quantity + parseInt(dialog.quantity)
+                        : Math.max(
+                            0,
+                            dialog.product.quantity - parseInt(dialog.quantity),
+                          )}
+                    </span>
+                    <span
+                      className={`text-[10px] font-semibold tabular-nums ml-auto ${
+                        dialog.type === "in"
+                          ? "text-emerald-600 dark:text-emerald-400"
+                          : "text-rose-600 dark:text-rose-400"
+                      }`}
+                    >
+                      {dialog.type === "in" ? "+" : "-"}
+                      {parseInt(dialog.quantity)}
+                    </span>
+                  </div>
+                )}
+            </div>
+
+            {/* Date */}
+            <div className="space-y-1.5">
+              <label className="flex items-center gap-1.5 text-sm font-medium text-zinc-700 dark:text-zinc-300">
+                <CalendarDays className="w-3.5 h-3.5 text-zinc-400" />
+                Date & Time
+              </label>
+              <input
+                type="datetime-local"
+                id="dialog-date"
+                value={dialog.date}
+                onChange={(e) =>
+                  setDialog((prev) => ({ ...prev, date: e.target.value }))
+                }
+                className="w-full px-3.5 py-2.5 bg-zinc-50/30 hover:bg-zinc-50/70 focus:bg-white dark:bg-zinc-900/30 dark:hover:bg-zinc-900/60 dark:focus:bg-zinc-900/90 border border-zinc-200 dark:border-zinc-800 rounded-xl text-sm transition-all focus:outline-none focus:border-indigo-500 focus:ring-4 focus:ring-indigo-500/5"
+              />
+            </div>
+
+            {/* Note */}
+            <div className="space-y-1.5">
+              <label className="flex items-center gap-1.5 text-sm font-medium text-zinc-700 dark:text-zinc-300">
+                <FileText className="w-3.5 h-3.5 text-zinc-400" />
+                Note
+                <span className="text-zinc-400 dark:text-zinc-500 font-normal text-xs">
+                  (optional)
+                </span>
+              </label>
+              <textarea
+                id="dialog-note"
+                value={dialog.note}
+                onChange={(e) =>
+                  setDialog((prev) => ({ ...prev, note: e.target.value }))
+                }
+                placeholder={
+                  dialog.type === "in"
+                    ? "e.g. Received from supplier, Purchase order #123..."
+                    : "e.g. Sold to customer, Damaged goods, Internal use..."
+                }
+                rows={3}
+                className="w-full px-3.5 py-2.5 bg-zinc-50/30 hover:bg-zinc-50/70 focus:bg-white dark:bg-zinc-900/30 dark:hover:bg-zinc-900/60 dark:focus:bg-zinc-900/90 border border-zinc-200 dark:border-zinc-800 rounded-xl text-sm transition-all focus:outline-none focus:border-indigo-500 focus:ring-4 focus:ring-indigo-500/5 resize-none"
+              />
+            </div>
+
+            {/* Action Buttons */}
+            <div className="flex items-center gap-2 pt-2 border-t border-zinc-100 dark:border-zinc-800/60">
+              <button
+                onClick={closeDialog}
+                disabled={dialog.saving}
+                className="flex-1 px-4 py-2.5 text-sm font-medium text-zinc-600 dark:text-zinc-400 bg-zinc-50 dark:bg-zinc-900/50 border border-zinc-200 dark:border-zinc-800 rounded-xl hover:bg-zinc-100 dark:hover:bg-zinc-800/60 transition-all cursor-pointer active:scale-[0.98] disabled:opacity-50"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={handleDialogSubmit}
+                disabled={
+                  dialog.saving ||
+                  !dialog.quantity ||
+                  parseInt(dialog.quantity) <= 0
+                }
+                className={`flex-1 px-4 py-2.5 text-sm font-semibold rounded-xl transition-all cursor-pointer active:scale-[0.98] disabled:opacity-50 disabled:cursor-not-allowed inline-flex items-center justify-center gap-2 ${
+                  dialog.type === "in"
+                    ? "bg-gradient-to-r from-emerald-600 to-green-600 hover:from-emerald-500 hover:to-green-500 text-white shadow-sm shadow-emerald-500/10 hover:shadow-emerald-500/20"
+                    : "bg-gradient-to-r from-rose-600 to-red-600 hover:from-rose-500 hover:to-red-500 text-white shadow-sm shadow-rose-500/10 hover:shadow-rose-500/20"
+                }`}
+              >
+                {dialog.saving ? (
+                  <svg
+                    className="animate-spin h-4 w-4 text-current"
+                    xmlns="http://www.w3.org/2000/svg"
+                    fill="none"
+                    viewBox="0 0 24 24"
+                  >
+                    <circle
+                      className="opacity-25"
+                      cx="12"
+                      cy="12"
+                      r="10"
+                      stroke="currentColor"
+                      strokeWidth="4"
+                    />
+                    <path
+                      className="opacity-75"
+                      fill="currentColor"
+                      d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
+                    />
+                  </svg>
+                ) : dialog.type === "in" ? (
+                  <ArrowDownToLine className="w-4 h-4" />
+                ) : (
+                  <ArrowUpFromLine className="w-4 h-4" />
+                )}
+                {dialog.saving
+                  ? "Processing..."
+                  : dialog.type === "in"
+                    ? "Confirm Stock In"
+                    : "Confirm Stock Out"}
+              </button>
+            </div>
+          </div>
+        )}
+      </Modal>
     </div>
   );
 }
