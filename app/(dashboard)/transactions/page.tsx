@@ -9,7 +9,7 @@ import { Modal } from '@/components/ui/Modal';
 import { EmptyState } from '@/components/ui/EmptyState';
 import { Skeleton } from '@/components/ui/Skeleton';
 import { toast } from '@/components/ui/Toast';
-import { ArrowRightLeft, Plus, Clock, ChevronLeft, ChevronRight } from 'lucide-react';
+import { ArrowRightLeft, Plus, Clock, ChevronLeft, ChevronRight, Download } from 'lucide-react';
 import { Select } from '@/components/ui/Select';
 
 const PAGE_SIZE = 10;
@@ -86,6 +86,7 @@ export default function TransactionsPage() {
   const [products, setProducts] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [isModalOpen, setIsModalOpen] = useState(false);
+  const [isReminderOpen, setIsReminderOpen] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [page, setPage] = useState(1);
   
@@ -131,6 +132,62 @@ export default function TransactionsPage() {
     } catch (error) {
       console.error(error);
     }
+  };
+
+  // Weekly Notification Check
+  useEffect(() => {
+    const lastDownload = localStorage.getItem('last_transaction_download');
+    const now = new Date().getTime();
+    const oneWeek = 7 * 24 * 60 * 60 * 1000;
+
+    if (!lastDownload || (now - new Date(lastDownload).getTime() > oneWeek)) {
+      setIsReminderOpen(true);
+    }
+  }, []);
+
+  const downloadCSV = () => {
+    if (!transactions.length) {
+      toast('No transactions to download', 'info');
+      return;
+    }
+
+    const headers = ['Date', 'Product Name', 'SKU', 'Type', 'Quantity', 'Created By', 'Note'];
+    const csvRows = [headers.join(',')];
+
+    transactions.forEach(t => {
+      const date = new Date(t.date).toLocaleDateString('en-LK', { day: '2-digit', month: 'short', year: 'numeric' });
+      const productName = t.product?.name || 'Deleted Product';
+      const sku = t.product?.sku || 'N/A';
+      const type = t.type === 'in' ? 'IN' : 'OUT';
+      const qty = t.type === 'in' ? `+${t.quantity}` : `-${t.quantity}`;
+      const createdBy = t.createdBy?.name || '';
+      const note = t.note || '';
+      
+      const row = [
+        `"${date}"`,
+        `"${productName}"`,
+        `"${sku}"`,
+        `"${type}"`,
+        `"${qty}"`,
+        `"${createdBy}"`,
+        `"${note}"`
+      ];
+      csvRows.push(row.join(','));
+    });
+
+    const csvContent = "data:text/csv;charset=utf-8," + csvRows.join('\n');
+    const encodedUri = encodeURI(csvContent);
+    const link = document.createElement("a");
+    link.setAttribute("href", encodedUri);
+    link.setAttribute("download", `transaction_history_${new Date().toISOString().split('T')[0]}.csv`);
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+
+    // Update last downloaded date
+    localStorage.setItem('last_transaction_download', new Date().toISOString());
+    setIsReminderOpen(false);
+    toast('Transaction history downloaded successfully', 'success');
   };
 
   // Reset to page 1 when filter toggles
@@ -181,9 +238,14 @@ export default function TransactionsPage() {
           <h2 className="text-xl font-semibold text-zinc-900 dark:text-zinc-100">Transactions</h2>
           <p className="text-sm text-zinc-500 dark:text-zinc-400">Record and view product moving history</p>
         </div>
-        <Button onClick={() => setIsModalOpen(true)}>
-          <Plus className="w-4 h-4" /> New Transaction
-        </Button>
+        <div className="flex gap-2">
+          <Button onClick={downloadCSV} variant="secondary">
+            <Download className="w-4 h-4" /> Export CSV
+          </Button>
+          <Button onClick={() => setIsModalOpen(true)}>
+            <Plus className="w-4 h-4" /> New Transaction
+          </Button>
+        </div>
       </div>
 
       <Card className="p-0 overflow-hidden border border-zinc-100 dark:border-zinc-800/80 shadow-[0_8px_30px_rgb(0,0,0,0.015),0_1px_2px_rgb(0,0,0,0.01)] bg-white dark:bg-[#0c0c14]">
@@ -344,6 +406,26 @@ export default function TransactionsPage() {
             </Button>
           </div>
         </form>
+      </Modal>
+
+      <Modal 
+        isOpen={isReminderOpen} 
+        onClose={() => setIsReminderOpen(false)}
+        title="Weekly Report Reminder"
+      >
+        <div className="space-y-4">
+          <p className="text-sm text-zinc-600 dark:text-zinc-400 leading-relaxed">
+            It has been a week or more since your last transaction history export. Would you like to download the latest records now?
+          </p>
+          <div className="pt-4 flex justify-end gap-3 border-t border-zinc-100 dark:border-zinc-800/60 mt-6">
+            <Button type="button" variant="secondary" onClick={() => setIsReminderOpen(false)}>
+              Remind Me Later
+            </Button>
+            <Button type="button" onClick={downloadCSV}>
+              <Download className="w-4 h-4" /> Export CSV
+            </Button>
+          </div>
+        </div>
       </Modal>
     </div>
   );
