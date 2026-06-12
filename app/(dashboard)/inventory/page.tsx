@@ -106,7 +106,19 @@ export default function InventoryPage() {
     }
   };
 
-  useEffect(() => { fetchProducts(); }, []);
+  useEffect(() => { 
+    fetchProducts(); 
+    
+    // Redirect deliver role
+    const checkRole = async () => {
+      const res = await fetch('/api/auth/session');
+      const session = await res.json();
+      if (session?.user?.role === 'deliver') {
+        router.push('/products');
+      }
+    };
+    checkRole();
+  }, [router]);
 
   // -- Derived summary counts --
   const totalItems = products.length;

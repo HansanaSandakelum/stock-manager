@@ -17,6 +17,16 @@ export default function ReportsPage() {
         if (data.success) setProducts(data.data);
         setLoading(false);
       });
+      
+    // Redirect deliver role
+    const checkRole = async () => {
+      const res = await fetch('/api/auth/session');
+      const session = await res.json();
+      if (session?.user?.role === 'deliver') {
+        window.location.href = '/products';
+      }
+    };
+    checkRole();
   }, []);
 
   const formatCurrency = (val: number) => `Rs. ${val.toLocaleString('en-LK', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;

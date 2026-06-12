@@ -263,6 +263,8 @@ export default function UsersPage() {
     switch (userRole) {
       case 'admin':
         return <Badge variant="danger">Admin</Badge>;
+      case 'deliver':
+        return <Badge variant="warning">Deliver</Badge>;
       case 'staff':
       default:
         return <Badge variant="success">Staff</Badge>;
@@ -423,6 +425,7 @@ export default function UsersPage() {
               onChange={setRole}
               options={[
                 { value: 'staff', label: 'Staff (Inventory Management & Operations)' },
+                { value: 'deliver', label: 'Deliver (Delivery & Stock Handling)' },
                 { value: 'admin', label: 'Administrator (Full Access & User Management)' }
               ]}
             />
@@ -472,6 +475,7 @@ export default function UsersPage() {
               disabled={(session?.user as any)?.id === selectedUser?._id}
               options={[
                 { value: 'staff', label: 'Staff (Inventory Management & Operations)' },
+                { value: 'deliver', label: 'Deliver (Delivery & Stock Handling)' },
                 { value: 'admin', label: 'Administrator (Full Access & User Management)' }
               ]}
             />
