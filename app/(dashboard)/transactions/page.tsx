@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
+import { useSession } from 'next-auth/react';
 import { Card } from '@/components/ui/Card';
 import { Button } from '@/components/ui/Button';
 import { Badge } from '@/components/ui/Badge';
@@ -92,6 +93,14 @@ export default function TransactionsPage() {
   
   // Filters
   const [filterType, setFilterType] = useState('');
+  const [mounted, setMounted] = useState(false);
+
+  const { data: session } = useSession();
+  const role = (session?.user as any)?.role;
+
+  useEffect(() => {
+    setMounted(true);
+  }, []);
   
   // Form State
   const [formData, setFormData] = useState({
@@ -230,6 +239,22 @@ export default function TransactionsPage() {
   const totalPages = Math.max(1, Math.ceil(transactions.length / PAGE_SIZE));
   const safePage = Math.min(page, totalPages);
   const paginated = transactions.slice((safePage - 1) * PAGE_SIZE, safePage * PAGE_SIZE);
+
+  const isLocked = mounted && role === "deliver" && new Date().getHours() >= 18;
+
+  if (isLocked) {
+    return (
+      <div className="flex flex-col items-center justify-center min-h-[60vh]">
+        <div className="w-16 h-16 bg-rose-50 dark:bg-rose-950/20 text-rose-500 rounded-full flex items-center justify-center mb-4 border border-rose-100 dark:border-rose-900/30">
+          <Clock className="w-8 h-8" />
+        </div>
+        <h2 className="text-xl font-bold text-zinc-900 dark:text-zinc-100 mb-2">Access Restricted</h2>
+        <p className="text-zinc-500 dark:text-zinc-400 text-center max-w-md">
+          Transactions are locked after 6 PM for delivery personnel. Please try again tomorrow during working hours.
+        </p>
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-6">
