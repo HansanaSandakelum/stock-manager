@@ -49,6 +49,7 @@ interface StockDialogState {
   quantity: string;
   note: string;
   date: string;
+  isReturn: boolean;
   saving: boolean;
 }
 
@@ -177,6 +178,7 @@ export default function StockHandlingPage() {
     quantity: "",
     note: "",
     date: new Date().toISOString().slice(0, 16), // datetime-local format
+    isReturn: false,
     saving: false,
   });
 
@@ -188,6 +190,7 @@ export default function StockHandlingPage() {
       quantity: "",
       note: "",
       date: new Date().toISOString().slice(0, 16),
+      isReturn: type === "in" && role === "deliver",
       saving: false,
     });
   };
@@ -236,16 +239,18 @@ export default function StockHandlingPage() {
     setDialog((prev) => ({ ...prev, saving: true }));
 
     try {
+      const actualType = dialog.type === "in" && dialog.isReturn ? "return" : dialog.type;
+
       const res = await fetch("/api/transactions", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           product: dialog.product._id,
-          type: dialog.type,
+          type: actualType,
           quantity,
           note:
             dialog.note.trim() ||
-            `Stock ${dialog.type === "in" ? "In" : "Out"} – ${quantity} units`,
+            `Stock ${dialog.type === "in" ? "In" : "Out"} – ${quantity} units${dialog.isReturn ? ' (Return)' : ''}`,
           date: new Date(dialog.date).toISOString(),
         }),
       });
@@ -521,19 +526,17 @@ export default function StockHandlingPage() {
                       {/* Stock In / Stock Out Buttons */}
                       <td className="px-4 py-2.5 w-36 sm:w-52 text-center">
                         <div className="flex items-center justify-center gap-2">
-                          {role !== "deliver" && (
-                            <button
-                              id={`stock-in-${product._id}`}
-                              onClick={() => openDialog(product, "in")}
-                              className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-[11px] font-semibold transition-all active:scale-95 cursor-pointer
-                                bg-emerald-50 text-emerald-700 border border-emerald-200 hover:bg-emerald-100 hover:border-emerald-300 hover:shadow-sm hover:shadow-emerald-100
-                                dark:bg-emerald-950/20 dark:text-emerald-400 dark:border-emerald-800/40 dark:hover:bg-emerald-950/40 dark:hover:bg-emerald-700/50"
-                              aria-label={`Stock In ${product.name}`}
-                            >
-                              <ArrowDownToLine className="w-3 h-3" />
-                              <span className="hidden sm:inline">Stock </span>In
-                            </button>
-                          )}
+                          <button
+                            id={`stock-in-${product._id}`}
+                            onClick={() => openDialog(product, "in")}
+                            className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-[11px] font-semibold transition-all active:scale-95 cursor-pointer
+                              bg-emerald-50 text-emerald-700 border border-emerald-200 hover:bg-emerald-100 hover:border-emerald-300 hover:shadow-sm hover:shadow-emerald-100
+                              dark:bg-emerald-950/20 dark:text-emerald-400 dark:border-emerald-800/40 dark:hover:bg-emerald-950/40 dark:hover:bg-emerald-700/50"
+                            aria-label={`Stock In ${product.name}`}
+                          >
+                            <ArrowDownToLine className="w-3 h-3" />
+                            <span className="hidden sm:inline">Stock </span>In
+                          </button>
                           <button
                             id={`stock-out-${product._id}`}
                             onClick={() => openDialog(product, "out")}
@@ -918,6 +921,43 @@ export default function StockHandlingPage() {
                   </div>
                 )}
             </div>
+
+            {/* Is Return Toggle */}
+            {dialog.type === "in" && (
+              <div className="flex flex-col gap-2.5 bg-zinc-50/50 dark:bg-zinc-900/20 border border-zinc-200/60 dark:border-zinc-800/40 rounded-xl p-3.5">
+                <p className="text-[10px] font-semibold text-zinc-500 dark:text-zinc-400 uppercase tracking-wider">Stock In Type</p>
+                <div className="flex rounded-xl overflow-hidden border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-[#0c0c14] p-0.5 gap-0.5">
+                  <button
+                    type="button"
+                    onClick={() => setDialog(prev => ({ ...prev, isReturn: false }))}
+                    disabled={role === "deliver"}
+                    className={`flex-1 px-3 py-2.5 rounded-lg text-[11px] font-semibold transition-all flex items-center justify-center gap-1.5 ${
+                      !dialog.isReturn
+                        ? "bg-emerald-600 text-white shadow-sm"
+                        : "text-zinc-500 dark:text-zinc-400 hover:bg-zinc-50 dark:hover:bg-zinc-800/50 cursor-pointer"
+                    } ${role === "deliver" ? "opacity-40 cursor-not-allowed" : ""}`}
+                  >
+                    Regular Restock
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setDialog(prev => ({ ...prev, isReturn: true }))}
+                    className={`flex-1 px-3 py-2.5 rounded-lg text-[11px] font-semibold transition-all flex items-center justify-center gap-1.5 ${
+                      dialog.isReturn
+                        ? "bg-amber-500 text-white shadow-sm"
+                        : "text-zinc-500 dark:text-zinc-400 hover:bg-zinc-50 dark:hover:bg-zinc-800/50 cursor-pointer"
+                    }`}
+                  >
+                    Product Return
+                  </button>
+                </div>
+                {role === "deliver" && (
+                  <p className="text-[10px] text-amber-600/90 dark:text-amber-400/90 leading-tight">
+                    * Delivery personnel can only process product returns for Stock In operations.
+                  </p>
+                )}
+              </div>
+            )}
 
             {/* Date */}
             <div className="space-y-1.5">

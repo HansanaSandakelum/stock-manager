@@ -18,6 +18,7 @@ import {
   Sun,
   Moon,
   Users,
+  Undo2,
 } from "lucide-react";
 import { useTheme } from "@/components/ThemeProvider";
 
@@ -28,6 +29,7 @@ const navigation = [
   { name: "Inventory", href: "/inventory", icon: Warehouse },
   { name: "Stock Handling", href: "/stock", icon: ClipboardList },
   { name: "Transactions", href: "/transactions", icon: ArrowRightLeft },
+  { name: "Returns", href: "/returns", icon: Undo2 },
   { name: "Reports", href: "/reports", icon: FileText },
   { name: "Users", href: "/users", icon: Users },
 ];
@@ -52,7 +54,7 @@ export function Sidebar({
     
     // Deliver-only routes
     if (role === "deliver") {
-      return ["/products", "/stock", "/categories", "/transactions"].includes(item.href);
+      return ["/products", "/stock", "/categories", "/transactions", "/returns"].includes(item.href);
     }
     
     return true;

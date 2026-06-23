@@ -2,7 +2,7 @@ import mongoose, { Schema, Document } from 'mongoose';
 
 export interface ITransaction extends Document {
   product: mongoose.Types.ObjectId;
-  type: 'in' | 'out';
+  type: 'in' | 'out' | 'return';
   quantity: number;
   note?: string;
   date: Date;
@@ -12,7 +12,7 @@ export interface ITransaction extends Document {
 
 const TransactionSchema: Schema = new Schema({
   product: { type: Schema.Types.ObjectId, ref: 'Product', required: true },
-  type: { type: String, enum: ['in', 'out'], required: true },
+  type: { type: String, enum: ['in', 'out', 'return'], required: true },
   quantity: { type: Number, required: true, min: 1 },
   note: { type: String },
   date: { type: Date, default: Date.now },
