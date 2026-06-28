@@ -51,6 +51,7 @@ interface StockDialogState {
   date: string;
   isReturn: boolean;
   saving: boolean;
+  isManualSelect?: boolean;
 }
 
 const PAGE_SIZE = 10;
@@ -181,8 +182,10 @@ export default function StockHandlingPage() {
     isReturn: false,
     saving: false,
   });
+  const [dialogSearch, setDialogSearch] = useState("");
 
   const openDialog = (product: Product, type: "in" | "out") => {
+    setDialogSearch("");
     setDialog({
       open: true,
       type,
@@ -192,6 +195,22 @@ export default function StockHandlingPage() {
       date: new Date().toISOString().slice(0, 16),
       isReturn: type === "in" && role === "deliver",
       saving: false,
+      isManualSelect: false,
+    });
+  };
+
+  const openDialogNoProduct = (type: "in" | "out") => {
+    setDialogSearch("");
+    setDialog({
+      open: true,
+      type,
+      product: null,
+      quantity: "",
+      note: "",
+      date: new Date().toISOString().slice(0, 16),
+      isReturn: type === "in" && role === "deliver",
+      saving: false,
+      isManualSelect: true,
     });
   };
 
@@ -199,6 +218,18 @@ export default function StockHandlingPage() {
     if (dialog.saving) return;
     setDialog((prev) => ({ ...prev, open: false }));
   };
+
+  const dialogFilteredProducts = useMemo(() => {
+    if (!dialog.open || dialog.product) return [];
+    const q = dialogSearch.trim().toLowerCase();
+    if (!q) return products;
+    return products.filter(
+      (p) =>
+        p.name?.toLowerCase().includes(q) ||
+        p.sku?.toLowerCase().includes(q) ||
+        p.category?.name?.toLowerCase().includes(q)
+    );
+  }, [dialog.open, dialog.product, dialogSearch, products]);
 
   // == Data fetching ==
   const fetchProducts = useCallback(async (silent = false) => {
@@ -345,21 +376,38 @@ export default function StockHandlingPage() {
           <h2 className="text-base font-semibold text-zinc-900 dark:text-zinc-100">
             Stock Handling
           </h2>
-          <p className="text-xs text-zinc-400 dark:text-zinc-505 mt-0.5">
+          <p className="text-xs text-zinc-400 dark:text-zinc-400 mt-0.5">
             Use Stock In / Stock Out buttons to manage inventory with full
             transaction details.
           </p>
         </div>
-        <button
-          onClick={() => fetchProducts(true)}
-          disabled={refreshing}
-          className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium text-zinc-505 dark:text-zinc-400 hover:text-zinc-800 dark:hover:text-zinc-200 border border-zinc-200 dark:border-zinc-800 rounded-xl hover:bg-zinc-50 dark:hover:bg-zinc-900/40 transition-all active:scale-95 cursor-pointer disabled:opacity-50 self-start sm:self-auto"
-        >
-          <RefreshCw
-            className={`w-3.5 h-3.5 ${refreshing ? "animate-spin" : ""}`}
-          />
-          Refresh
-        </button>
+        <div className="flex flex-wrap items-center gap-2 w-full sm:w-auto">
+          <button
+            onClick={() => openDialogNoProduct("in")}
+            className="flex-1 sm:flex-initial flex items-center justify-center gap-1.5 px-3.5 py-2 text-xs font-semibold text-white bg-emerald-600 hover:bg-emerald-500 rounded-xl shadow-sm hover:shadow-emerald-500/10 transition-all active:scale-95 cursor-pointer"
+          >
+            <ArrowDownToLine className="w-3.5 h-3.5" />
+            Stock In
+          </button>
+          <button
+            onClick={() => openDialogNoProduct("out")}
+            className="flex-1 sm:flex-initial flex items-center justify-center gap-1.5 px-3.5 py-2 text-xs font-semibold text-white bg-rose-600 hover:bg-rose-500 rounded-xl shadow-sm hover:shadow-rose-500/10 transition-all active:scale-95 cursor-pointer"
+          >
+            <ArrowUpFromLine className="w-3.5 h-3.5" />
+            Stock Out
+          </button>
+          <button
+            onClick={() => fetchProducts(true)}
+            disabled={refreshing}
+            className="flex items-center justify-center p-2 text-zinc-550 dark:text-zinc-400 hover:text-zinc-800 dark:hover:text-zinc-200 border border-zinc-200 dark:border-zinc-800 rounded-xl hover:bg-zinc-50 dark:hover:bg-zinc-900/40 transition-all active:scale-95 cursor-pointer disabled:opacity-50"
+            title="Refresh Products"
+            aria-label="Refresh Products"
+          >
+            <RefreshCw
+              className={`w-3.5 h-3.5 ${refreshing ? "animate-spin" : ""}`}
+            />
+          </button>
+        </div>
       </div>
 
       {/* == Stat strip == */}
@@ -447,11 +495,12 @@ export default function StockHandlingPage() {
         </div>
       </div>
 
-      {/* == Table == */}
+      {/* == Products Display == */}
       <Card className="p-0 overflow-hidden border border-zinc-100 dark:border-zinc-800/80">
-        <div className="overflow-x-auto">
-          <table className="w-full text-xs min-w-full md:min-w-[700px] md:table-fixed">
-            <thead className="bg-zinc-50/80 dark:bg-zinc-900/50 border-b border-zinc-100 dark:border-zinc-800/70 text-[10px] font-semibold uppercase tracking-wider text-zinc-400 dark:text-zinc-505">
+        {/* Desktop Table View */}
+        <div className="hidden md:block overflow-x-auto">
+          <table className="w-full text-xs min-w-[700px] table-fixed">
+            <thead className="bg-zinc-50/80 dark:bg-zinc-900/50 border-b border-zinc-100 dark:border-zinc-800/70 text-[10px] font-semibold uppercase tracking-wider text-zinc-400 dark:text-zinc-550">
               <tr>
                 <th className="px-4 py-3 text-left min-w-[120px] sm:min-w-[180px]">Product</th>
                 <th className="px-4 py-3 text-center w-36 sm:w-52">Actions</th>
@@ -481,7 +530,7 @@ export default function StockHandlingPage() {
                 <tr>
                   <td colSpan={COL_SPAN} className="px-4 py-12 text-center">
                     <Package className="w-7 h-7 mx-auto mb-2 text-zinc-300 dark:text-zinc-600" />
-                    <p className="text-xs text-zinc-400 dark:text-zinc-505">
+                    <p className="text-xs text-zinc-400 dark:text-zinc-400">
                       {search
                         ? `No matches for "${search}"`
                         : "No products found"}
@@ -513,10 +562,10 @@ export default function StockHandlingPage() {
                             </div>
                           )}
                           <div className="min-w-0">
-                            <p className="font-semibold text-zinc-800 dark:text-zinc-155 truncate max-w-[150px]">
+                            <p className="font-semibold text-zinc-800 dark:text-zinc-200 truncate max-w-[150px]">
                               {product.name}
                             </p>
-                            <p className="font-mono text-[9px] text-zinc-400 dark:text-zinc-505">
+                            <p className="font-mono text-[9px] text-zinc-400 dark:text-zinc-400">
                               {product.sku}
                             </p>
                           </div>
@@ -543,7 +592,7 @@ export default function StockHandlingPage() {
                             disabled={product.quantity === 0}
                             className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-[11px] font-semibold transition-all active:scale-95 cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed
                               bg-rose-50 text-rose-700 border border-rose-200 hover:bg-rose-100 hover:border-rose-300 hover:shadow-sm hover:shadow-rose-100
-                              dark:bg-rose-950/20 dark:text-rose-400 dark:border-rose-800/40 dark:hover:bg-rose-950/40 dark:hover:border-rose-700/50"
+                              dark:bg-rose-950/20 dark:text-rose-400 dark:border-rose-800/40 dark:hover:bg-rose-950/40 dark:hover:bg-rose-700/50"
                             aria-label={`Stock Out ${product.name}`}
                           >
                             <ArrowUpFromLine className="w-3 h-3" />
@@ -568,7 +617,7 @@ export default function StockHandlingPage() {
                       </td>
 
                       {/* Category */}
-                      <td className="px-3 py-2.5 text-zinc-505 dark:text-zinc-400 hidden sm:table-cell sm:w-32 text-left truncate">
+                      <td className="px-3 py-2.5 text-zinc-500 dark:text-zinc-400 hidden sm:table-cell sm:w-32 text-left truncate">
                         {product.category?.name ?? "-"}
                       </td>
 
@@ -584,7 +633,7 @@ export default function StockHandlingPage() {
                       </td>
 
                       {/* Price */}
-                      <td className="px-3 py-2.5 text-right text-zinc-505 dark:text-zinc-400 hidden lg:table-cell lg:w-32 font-medium truncate">
+                      <td className="px-3 py-2.5 text-right text-zinc-500 dark:text-zinc-400 hidden lg:table-cell lg:w-32 font-medium truncate">
                         Rs.{" "}
                         {product.unitPrice?.toLocaleString("en-LK", {
                           minimumFractionDigits: 2,
@@ -611,6 +660,121 @@ export default function StockHandlingPage() {
           </table>
         </div>
 
+        {/* Mobile View Card List */}
+        <div className="block md:hidden">
+          {loading ? (
+            <div className="space-y-3 p-4">
+              {Array.from({ length: PAGE_SIZE }).map((_, i) => (
+                <Skeleton key={i} className="h-24 w-full rounded-xl" />
+              ))}
+            </div>
+          ) : filtered.length === 0 ? (
+            <div className="px-4 py-12 text-center">
+              <Package className="w-8 h-8 mx-auto mb-2 text-zinc-300 dark:text-zinc-600" />
+              <p className="text-xs text-zinc-400 dark:text-zinc-400">
+                {search ? `No matches for "${search}"` : "No products found"}
+              </p>
+            </div>
+          ) : (
+            <div className="divide-y divide-zinc-100 dark:divide-zinc-800/60">
+              {paginated.map((product) => {
+                const thr = product.lowStockThreshold ?? 10;
+                const variant = stockVariant(product.quantity, thr);
+
+                return (
+                  <div
+                    key={product._id}
+                    className="p-4 flex flex-col gap-3 bg-white dark:bg-[#0c0c14] hover:bg-zinc-50/40 dark:hover:bg-zinc-900/10 transition-colors"
+                  >
+                    {/* Top row: Product info & Stock badge */}
+                    <div className="flex items-start justify-between gap-3">
+                      <div className="flex items-center gap-3 min-w-0">
+                        {product.image ? (
+                          <img
+                            src={product.image}
+                            alt={product.name}
+                            className="w-10 h-10 rounded-xl object-cover border border-zinc-100 dark:border-zinc-800 flex-shrink-0"
+                          />
+                        ) : (
+                          <div className="w-10 h-10 rounded-xl bg-indigo-50 dark:bg-indigo-950/20 border border-indigo-100/50 dark:border-indigo-900/20 flex items-center justify-center flex-shrink-0">
+                            <Package className="w-5 h-5 text-indigo-400 dark:text-indigo-505" />
+                          </div>
+                        )}
+                        <div className="min-w-0">
+                          <h4 className="font-bold text-sm text-zinc-800 dark:text-zinc-200 truncate leading-snug">
+                            {product.name}
+                          </h4>
+                          <div className="flex items-center gap-1.5 mt-0.5">
+                            <span className="font-mono text-[9px] text-zinc-400 dark:text-zinc-500">
+                              {product.sku}
+                            </span>
+                            {product.category?.name && (
+                              <>
+                                <span className="text-[10px] text-zinc-300 dark:text-zinc-700">•</span>
+                                <span className="text-[10px] text-zinc-400 dark:text-zinc-500 truncate max-w-[80px]">
+                                  {product.category.name}
+                                </span>
+                              </>
+                            )}
+                          </div>
+                        </div>
+                      </div>
+
+                      {/* Current Stock Badge */}
+                      <div className="text-right flex-shrink-0">
+                        <div className="text-[9px] font-semibold text-zinc-450 dark:text-zinc-500 uppercase tracking-wider mb-0.5">
+                          Stock
+                        </div>
+                        <Badge variant={variant}>
+                          {product.quantity} units
+                        </Badge>
+                      </div>
+                    </div>
+
+                    {/* Bottom row: Interactive Actions */}
+                    <div className="flex items-center justify-between gap-2 pt-2 border-t border-zinc-100/50 dark:border-zinc-800/40">
+                      <div className="flex items-center gap-2 flex-1">
+                        <button
+                          id={`mob-stock-in-${product._id}`}
+                          onClick={() => openDialog(product, "in")}
+                          className="flex-1 inline-flex items-center justify-center gap-1.5 py-2 rounded-xl text-xs font-semibold transition-all active:scale-95 cursor-pointer
+                            bg-emerald-50 text-emerald-700 border border-emerald-100 hover:bg-emerald-100
+                            dark:bg-emerald-950/20 dark:text-emerald-400 dark:border-emerald-900/30"
+                          aria-label={`Stock In ${product.name}`}
+                        >
+                          <ArrowDownToLine className="w-3.5 h-3.5" />
+                          In
+                        </button>
+                        <button
+                          id={`mob-stock-out-${product._id}`}
+                          onClick={() => openDialog(product, "out")}
+                          disabled={product.quantity === 0}
+                          className="flex-1 inline-flex items-center justify-center gap-1.5 py-2 rounded-xl text-xs font-semibold transition-all active:scale-95 cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed
+                            bg-rose-50 text-rose-700 border border-rose-100 hover:bg-rose-100
+                            dark:bg-rose-950/20 dark:text-rose-400 dark:border-rose-900/30"
+                          aria-label={`Stock Out ${product.name}`}
+                        >
+                          <ArrowUpFromLine className="w-3.5 h-3.5" />
+                          Out
+                        </button>
+                      </div>
+                      
+                      {/* Log Button */}
+                      <button
+                        onClick={() => router.push(`/stock/${product._id}/log`)}
+                        className="w-9 h-9 flex items-center justify-center rounded-xl border border-zinc-200 dark:border-zinc-700 text-zinc-400 dark:text-zinc-500 hover:border-indigo-300 hover:text-indigo-600 hover:bg-indigo-50/20 dark:hover:bg-indigo-950/20 transition-all cursor-pointer active:scale-90 flex-shrink-0"
+                        aria-label="View change log"
+                      >
+                        <Clock className="w-4 h-4" />
+                      </button>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          )}
+        </div>
+
         {/* == Pagination == */}
         {!loading && (
           <Pagination
@@ -628,12 +792,94 @@ export default function StockHandlingPage() {
         isOpen={dialog.open}
         onClose={closeDialog}
         title={
-          dialog.type === "in"
-            ? `Stock In – ${dialog.product?.name ?? ""}`
-            : `Stock Out – ${dialog.product?.name ?? ""}`
+          dialog.product
+            ? dialog.type === "in"
+              ? `Stock In – ${dialog.product.name}`
+              : `Stock Out – ${dialog.product.name}`
+            : dialog.type === "in"
+              ? "Manual Stock In"
+              : "Manual Stock Out"
         }
       >
-        {dialog.product && (
+        {!dialog.product ? (
+          <div className="space-y-4">
+            <p className="text-xs text-zinc-500 dark:text-zinc-400">
+              Choose a product to perform manual Stock {dialog.type === "in" ? "In" : "Out"}:
+            </p>
+            <div className="relative">
+              <Search className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-zinc-400 pointer-events-none" />
+              <input
+                type="text"
+                placeholder="Search by name, SKU or category..."
+                value={dialogSearch}
+                onChange={(e) => setDialogSearch(e.target.value)}
+                className="w-full pl-9 pr-3 py-2.5 text-sm bg-zinc-50/50 dark:bg-zinc-900/30 border border-zinc-200 dark:border-zinc-800 rounded-xl focus:outline-none focus:border-indigo-500 focus:ring-4 focus:ring-indigo-500/5 transition-all"
+                autoFocus
+              />
+            </div>
+
+            <div className="max-h-[280px] overflow-y-auto border border-zinc-100 dark:border-zinc-800/80 rounded-xl divide-y divide-zinc-100 dark:divide-zinc-800/60 bg-white dark:bg-[#0c0c14]">
+              {dialogFilteredProducts.length === 0 ? (
+                <div className="p-8 text-center text-zinc-400 dark:text-zinc-500">
+                  No products found.
+                </div>
+              ) : (
+                dialogFilteredProducts.map((p) => {
+                  const isDisabled = dialog.type === "out" && p.quantity === 0;
+                  return (
+                    <button
+                      key={p._id}
+                      type="button"
+                      disabled={isDisabled}
+                      onClick={() => {
+                        setDialog((prev) => ({
+                          ...prev,
+                          product: p,
+                          isReturn: dialog.type === "in" && role === "deliver",
+                        }));
+                      }}
+                      className="w-full p-3 flex items-center gap-3 text-left hover:bg-zinc-50/70 dark:hover:bg-zinc-900/40 transition-colors disabled:opacity-40 disabled:cursor-not-allowed cursor-pointer"
+                    >
+                      {p.image ? (
+                        <img
+                          src={p.image}
+                          alt={p.name}
+                          className="w-9 h-9 rounded-lg object-cover border border-zinc-100 dark:border-zinc-800 flex-shrink-0"
+                        />
+                      ) : (
+                        <div className="w-9 h-9 rounded-lg bg-indigo-50 dark:bg-indigo-950/20 border border-indigo-100/50 dark:border-indigo-900/20 flex items-center justify-center flex-shrink-0">
+                          <Package className="w-4.5 h-4.5 text-indigo-400 dark:text-zinc-500" />
+                        </div>
+                      )}
+                      <div className="min-w-0 flex-1">
+                        <p className="font-semibold text-xs text-zinc-800 dark:text-zinc-100 truncate">
+                          {p.name}
+                        </p>
+                        <p className="font-mono text-[9px] text-zinc-400 dark:text-zinc-500 truncate">
+                          {p.sku} {p.category?.name ? `• ${p.category.name}` : ""}
+                        </p>
+                      </div>
+                      <div className="text-right flex-shrink-0">
+                        <p className="text-[9px] text-zinc-400 dark:text-zinc-500 uppercase font-semibold">Stock</p>
+                        <p className={`font-bold text-xs ${p.quantity === 0 ? "text-rose-500" : "text-zinc-700 dark:text-zinc-300"}`}>
+                          {p.quantity}
+                        </p>
+                      </div>
+                    </button>
+                  );
+                })
+              )}
+            </div>
+
+            <button
+              type="button"
+              onClick={closeDialog}
+              className="w-full py-2.5 text-sm font-medium text-zinc-600 dark:text-zinc-400 bg-zinc-50 dark:bg-zinc-900/50 border border-zinc-200 dark:border-zinc-800 rounded-xl hover:bg-zinc-100 dark:hover:bg-zinc-800/60 transition-all cursor-pointer text-center active:scale-[0.98]"
+            >
+              Cancel
+            </button>
+          </div>
+        ) : (
           <div className="space-y-5">
             {/* Product Info Card */}
             <div className="flex items-center gap-3 p-3 rounded-xl bg-zinc-50/80 dark:bg-zinc-900/40 border border-zinc-100 dark:border-zinc-800/60">
@@ -649,9 +895,20 @@ export default function StockHandlingPage() {
                 </div>
               )}
               <div className="min-w-0 flex-1">
-                <p className="font-semibold text-sm text-zinc-800 dark:text-zinc-100 truncate">
-                  {dialog.product.name}
-                </p>
+                <div className="flex items-center gap-1.5">
+                  <p className="font-semibold text-sm text-zinc-800 dark:text-zinc-100 truncate">
+                    {dialog.product.name}
+                  </p>
+                  {dialog.isManualSelect && (
+                    <button
+                      type="button"
+                      onClick={() => setDialog((prev) => ({ ...prev, product: null }))}
+                      className="px-1.5 py-0.5 text-[9px] font-semibold text-indigo-600 dark:text-indigo-400 border border-indigo-200 dark:border-indigo-800/80 rounded-md hover:bg-indigo-50 dark:hover:bg-indigo-950/30 transition-all cursor-pointer"
+                    >
+                      Change
+                    </button>
+                  )}
+                </div>
                 <div className="flex items-center gap-2 mt-0.5">
                   <span className="font-mono text-[10px] text-zinc-400 dark:text-zinc-500">
                     {dialog.product.sku}

@@ -109,7 +109,7 @@ export default function ProductsPage() {
         ) : (
           <div className="overflow-x-auto">
             <table className="w-full text-xs text-left">
-              <thead className="bg-zinc-50/50 dark:bg-zinc-900/40 border-b border-zinc-100 dark:border-zinc-800/80 text-[10px] font-semibold uppercase tracking-wider text-zinc-400 dark:text-zinc-505">
+              <thead className="bg-zinc-50/50 dark:bg-zinc-900/40 border-b border-zinc-100 dark:border-zinc-800/80 text-[10px] font-semibold uppercase tracking-wider text-zinc-400 dark:text-zinc-400">
                 <tr>
                   <th className="px-3 sm:px-6 py-3 sm:py-4.5 font-semibold">Product</th>
                   <th className="px-3 sm:px-6 py-3 sm:py-4.5 font-semibold hidden sm:table-cell">SKU</th>
@@ -123,23 +123,23 @@ export default function ProductsPage() {
               <tbody className="divide-y divide-zinc-100 dark:divide-zinc-800/60">
                 {products.map((product) => (
                   <tr key={product._id} className="hover:bg-zinc-50/30 dark:hover:bg-zinc-900/10 transition-colors">
-                    <td className="px-3 sm:px-6 py-3 sm:py-4 font-semibold text-zinc-800 dark:text-zinc-155 flex items-center gap-3">
+                    <td className="px-3 sm:px-6 py-3 sm:py-4 font-semibold text-zinc-800 dark:text-zinc-200 flex items-center gap-3">
                       {product.image ? (
                         <img src={product.image} alt={product.name} className="w-8 h-8 rounded-lg object-cover bg-zinc-100 dark:bg-zinc-800 border border-zinc-100 dark:border-zinc-800" />
                       ) : (
-                        <div className="w-8 h-8 rounded-lg bg-zinc-50 dark:bg-zinc-900 flex items-center justify-center border border-zinc-100 dark:border-zinc-800 text-zinc-400 dark:text-zinc-505">
+                        <div className="w-8 h-8 rounded-lg bg-zinc-50 dark:bg-zinc-900 flex items-center justify-center border border-zinc-100 dark:border-zinc-800 text-zinc-400 dark:text-zinc-500">
                           <Package className="w-4 h-4" />
                         </div>
                       )}
                       <div className="flex flex-col">
                         <span className="truncate max-w-[140px] sm:max-w-none">{product.name}</span>
-                        <span className="font-mono text-[10px] text-zinc-400 dark:text-zinc-505 sm:hidden mt-0.5">{product.sku}</span>
+                        <span className="font-mono text-[10px] text-zinc-400 dark:text-zinc-500 sm:hidden mt-0.5">{product.sku}</span>
                       </div>
                     </td>
-                    <td className="px-3 sm:px-6 py-3 sm:py-4 text-zinc-400 dark:text-zinc-550 hidden sm:table-cell">{product.sku}</td>
-                    <td className="px-3 sm:px-6 py-3 sm:py-4 text-zinc-550 dark:text-zinc-400 hidden md:table-cell">{product.category?.name || '-'}</td>
-                    <td className="px-3 sm:px-6 py-3 sm:py-4 text-right text-zinc-750 dark:text-zinc-300 font-medium hidden sm:table-cell">{formatCurrency(product.unitPrice)}</td>
-                    <td className="px-3 sm:px-6 py-3 sm:py-4 text-right font-bold text-zinc-850 dark:text-zinc-200">{product.quantity}</td>
+                    <td className="px-3 sm:px-6 py-3 sm:py-4 text-zinc-400 dark:text-zinc-400 hidden sm:table-cell">{product.sku}</td>
+                    <td className="px-3 sm:px-6 py-3 sm:py-4 text-zinc-500 dark:text-zinc-400 hidden md:table-cell">{product.category?.name || '-'}</td>
+                    <td className="px-3 sm:px-6 py-3 sm:py-4 text-right text-zinc-700 dark:text-zinc-300 font-medium hidden sm:table-cell">{formatCurrency(product.unitPrice)}</td>
+                    <td className="px-3 sm:px-6 py-3 sm:py-4 text-right font-bold text-zinc-800 dark:text-zinc-200">{product.quantity}</td>
                     <td className="px-3 sm:px-6 py-3 sm:py-4 text-center hidden md:table-cell">
                       {product.quantity === 0 ? (
                         <Badge variant="danger">Out of Stock</Badge>

@@ -303,7 +303,7 @@ export default function TransactionsPage() {
           <>
             <div className="overflow-x-auto">
               <table className="w-full text-xs text-left">
-                <thead className="bg-zinc-50/50 dark:bg-zinc-900/40 border-b border-zinc-100 dark:border-zinc-800/80 text-[10px] font-semibold uppercase tracking-wider text-zinc-400 dark:text-zinc-505">
+                <thead className="bg-zinc-50/50 dark:bg-zinc-900/40 border-b border-zinc-100 dark:border-zinc-800/80 text-[10px] font-semibold uppercase tracking-wider text-zinc-400 dark:text-zinc-400">
                   <tr>
                     <th className="px-3 sm:px-6 py-3 sm:py-4.5 font-semibold">Date</th>
                     <th className="px-3 sm:px-6 py-3 sm:py-4.5 font-semibold">Product</th>
@@ -318,11 +318,11 @@ export default function TransactionsPage() {
                     <tr key={t._id} className="hover:bg-zinc-50/30 dark:hover:bg-zinc-900/10 transition-colors">
                       <td className="px-3 sm:px-6 py-3 sm:py-4 text-zinc-500 dark:text-zinc-400 font-medium">
                         <div className="flex items-center gap-1.5 whitespace-nowrap">
-                          <Clock className="w-3.5 h-3.5 text-zinc-350 dark:text-zinc-650" />
+                          <Clock className="w-3.5 h-3.5 text-zinc-455 dark:text-zinc-500" />
                           {new Date(t.date).toLocaleDateString('en-LK', { day: '2-digit', month: 'short', year: 'numeric' })}
                         </div>
                       </td>
-                      <td className="px-3 sm:px-6 py-3 sm:py-4 font-semibold text-zinc-800 dark:text-zinc-155">
+                      <td className="px-3 sm:px-6 py-3 sm:py-4 font-semibold text-zinc-800 dark:text-zinc-200">
                         <div className="flex flex-col sm:flex-row sm:items-center sm:gap-2">
                           <span className="truncate max-w-[120px] sm:max-w-none">{t.product?.name || 'Deleted Product'}</span>
                           <span className="text-zinc-400 dark:text-zinc-500 font-mono text-[9px] sm:text-[10px]">({t.product?.sku || 'N/A'})</span>
@@ -337,7 +337,7 @@ export default function TransactionsPage() {
                         {t.type === 'in' || t.type === 'return' ? `+${t.quantity}` : `-${t.quantity}`}
                       </td>
                       <td className="px-3 sm:px-6 py-3 sm:py-4 text-zinc-500 dark:text-zinc-400 font-medium hidden sm:table-cell">{t.createdBy?.name || '—'}</td>
-                      <td className="px-3 sm:px-6 py-3 sm:py-4 text-zinc-600 dark:text-zinc-405 max-w-[200px] truncate italic hidden sm:table-cell" title={t.note || ''}>{t.note || '—'}</td>
+                      <td className="px-3 sm:px-6 py-3 sm:py-4 text-zinc-600 dark:text-zinc-400 max-w-[200px] truncate italic hidden sm:table-cell" title={t.note || ''}>{t.note || '—'}</td>
                     </tr>
                   ))}
                 </tbody>
@@ -414,7 +414,7 @@ export default function TransactionsPage() {
           <div className="space-y-1.5">
             <label className="text-xs font-semibold text-zinc-500 dark:text-zinc-400 uppercase tracking-wide">Note (Optional)</label>
             <textarea
-              className="w-full px-3.5 py-2.5 bg-zinc-50/50 dark:bg-zinc-900/40 border border-zinc-200 dark:border-zinc-800 rounded-xl text-sm focus:outline-none focus:border-indigo-500 focus:ring-4 focus:ring-indigo-500/5 transition-all duration-200 text-zinc-800 dark:text-zinc-150 placeholder-zinc-400 dark:placeholder-zinc-650"
+              className="w-full px-3.5 py-2.5 bg-zinc-50/50 dark:bg-zinc-900/40 border border-zinc-200 dark:border-zinc-800 rounded-xl text-sm focus:outline-none focus:border-indigo-500 focus:ring-4 focus:ring-indigo-500/5 transition-all duration-200 text-zinc-800 dark:text-zinc-200 placeholder-zinc-400 dark:placeholder-zinc-500"
               rows={2}
               value={formData.note}
               onChange={(e) => setFormData({...formData, note: e.target.value})}

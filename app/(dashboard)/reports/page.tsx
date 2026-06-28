@@ -107,7 +107,7 @@ export default function ReportsPage() {
 
       <Card className="p-0 overflow-hidden border border-zinc-100 dark:border-zinc-800/80 shadow-[0_8px_30px_rgb(0,0,0,0.015),0_1px_2px_rgb(0,0,0,0.01)] bg-white dark:bg-[#0c0c14]">
         <div className="p-5 border-b border-zinc-100 dark:border-zinc-800/60 bg-white dark:bg-[#0c0c14]">
-          <h3 className="font-semibold text-zinc-800 dark:text-zinc-150 text-sm">Inventory Valuation Summary</h3>
+          <h3 className="font-semibold text-zinc-800 dark:text-zinc-200 text-sm">Inventory Valuation Summary</h3>
         </div>
         <div className="overflow-x-auto">
           <table className="w-full text-xs text-left">
@@ -123,11 +123,11 @@ export default function ReportsPage() {
             <tbody className="divide-y divide-zinc-100 dark:divide-zinc-800/60">
               {products.map((p) => (
                 <tr key={p._id} className="hover:bg-zinc-50/30 dark:hover:bg-zinc-900/10 transition-colors">
-                  <td className="px-6 py-4 font-semibold text-zinc-800 dark:text-zinc-155">{p.name}</td>
+                  <td className="px-6 py-4 font-semibold text-zinc-800 dark:text-zinc-200">{p.name}</td>
                   <td className="px-6 py-4 text-zinc-400 dark:text-zinc-500 font-mono text-[10px]">{p.sku}</td>
                   <td className="px-6 py-4 text-right text-zinc-700 dark:text-zinc-300 font-semibold tabular-nums">{p.quantity.toLocaleString()}</td>
-                  <td className="px-6 py-4 text-right text-zinc-650 dark:text-zinc-350 font-medium tabular-nums">{formatCurrency(p.unitPrice)}</td>
-                  <td className="px-6 py-4 text-right font-bold text-zinc-850 dark:text-zinc-150 tabular-nums">
+                  <td className="px-6 py-4 text-right text-zinc-600 dark:text-zinc-400 font-medium tabular-nums">{formatCurrency(p.unitPrice)}</td>
+                  <td className="px-6 py-4 text-right font-bold text-zinc-800 dark:text-zinc-200 tabular-nums">
                     {formatCurrency(p.quantity * p.unitPrice)}
                   </td>
                 </tr>
