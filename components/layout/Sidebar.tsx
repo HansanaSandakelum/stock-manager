@@ -85,8 +85,8 @@ export function Sidebar({
               <Package className="w-5 h-5 text-white" />
             </div>
             <span>
-              Stock
-              <span className="text-indigo-600 dark:text-indigo-400">Mgr</span>
+              Araliya
+              <span className="text-indigo-600 dark:text-indigo-400">Stocks</span>
             </span>
           </Link>
           <button

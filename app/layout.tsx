@@ -7,8 +7,8 @@ import { Toaster } from "@/components/ui/Toast";
 const plusJakartaSans = Plus_Jakarta_Sans({ subsets: ["latin"] });
 
 export const metadata: Metadata = {
-  title: "Stock Manager",
-  description: "Modern Stock Management System",
+  title: "AraliyaStocks",
+  description: "Modern Stock Management System for AraliyaStocks",
   icons: {
     icon: "/icon.svg",
   },
