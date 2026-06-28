@@ -42,10 +42,10 @@ export function StockChart({ data }: StockChartProps) {
   }
 
   return (
-    <Card className="h-[400px] flex flex-col">
+    <Card className="p-6 flex flex-col">
       <h3 className="text-lg font-semibold text-zinc-900 dark:text-zinc-100 mb-6">Stock Movement (Last 7 Days)</h3>
-      <div className="flex-1 min-h-0">
-        <ResponsiveContainer width="100%" height="100%" minWidth={0} minHeight={0}>
+      <div style={{ width: '100%', height: 300 }}>
+        <ResponsiveContainer width="100%" height={300}>
           <BarChart data={data} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
             <CartesianGrid strokeDasharray="3 3" vertical={false} stroke={gridColor} />
             <XAxis dataKey="date" axisLine={false} tickLine={false} tick={{ fill: axisColor, fontSize: 12 }} dy={10} />

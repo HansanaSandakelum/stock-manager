@@ -79,7 +79,7 @@ export async function POST(req: Request) {
     }
 
     // Update product quantity
-    if (type === 'in') {
+    if (type === 'in' || type === 'return') {
       product.quantity += quantity;
     } else {
       product.quantity -= quantity;

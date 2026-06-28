@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
+import { useSession } from 'next-auth/react';
 import { Card } from '@/components/ui/Card';
 import { Button } from '@/components/ui/Button';
 import { Badge } from '@/components/ui/Badge';
@@ -9,7 +10,7 @@ import { Modal } from '@/components/ui/Modal';
 import { EmptyState } from '@/components/ui/EmptyState';
 import { Skeleton } from '@/components/ui/Skeleton';
 import { toast } from '@/components/ui/Toast';
-import { ArrowRightLeft, Plus, Clock, ChevronLeft, ChevronRight } from 'lucide-react';
+import { ArrowRightLeft, Plus, Clock, ChevronLeft, ChevronRight, Download } from 'lucide-react';
 import { Select } from '@/components/ui/Select';
 
 const PAGE_SIZE = 10;
@@ -86,11 +87,20 @@ export default function TransactionsPage() {
   const [products, setProducts] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [isModalOpen, setIsModalOpen] = useState(false);
+  const [isReminderOpen, setIsReminderOpen] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [page, setPage] = useState(1);
   
   // Filters
   const [filterType, setFilterType] = useState('');
+  const [mounted, setMounted] = useState(false);
+
+  const { data: session } = useSession();
+  const role = (session?.user as any)?.role;
+
+  useEffect(() => {
+    setMounted(true);
+  }, []);
   
   // Form State
   const [formData, setFormData] = useState({
@@ -131,6 +141,62 @@ export default function TransactionsPage() {
     } catch (error) {
       console.error(error);
     }
+  };
+
+  // Weekly Notification Check
+  useEffect(() => {
+    const lastDownload = localStorage.getItem('last_transaction_download');
+    const now = new Date().getTime();
+    const oneWeek = 7 * 24 * 60 * 60 * 1000;
+
+    if (!lastDownload || (now - new Date(lastDownload).getTime() > oneWeek)) {
+      setIsReminderOpen(true);
+    }
+  }, []);
+
+  const downloadCSV = () => {
+    if (!transactions.length) {
+      toast('No transactions to download', 'info');
+      return;
+    }
+
+    const headers = ['Date', 'Product Name', 'SKU', 'Type', 'Quantity', 'Created By', 'Note'];
+    const csvRows = [headers.join(',')];
+
+    transactions.forEach(t => {
+      const date = new Date(t.date).toLocaleDateString('en-LK', { day: '2-digit', month: 'short', year: 'numeric' });
+      const productName = t.product?.name || 'Deleted Product';
+      const sku = t.product?.sku || 'N/A';
+      const type = t.type === 'in' ? 'IN' : t.type === 'return' ? 'RETURN' : 'OUT';
+      const qty = t.type === 'in' || t.type === 'return' ? `+${t.quantity}` : `-${t.quantity}`;
+      const createdBy = t.createdBy?.name || '';
+      const note = t.note || '';
+      
+      const row = [
+        `"${date}"`,
+        `"${productName}"`,
+        `"${sku}"`,
+        `"${type}"`,
+        `"${qty}"`,
+        `"${createdBy}"`,
+        `"${note}"`
+      ];
+      csvRows.push(row.join(','));
+    });
+
+    const csvContent = "data:text/csv;charset=utf-8," + csvRows.join('\n');
+    const encodedUri = encodeURI(csvContent);
+    const link = document.createElement("a");
+    link.setAttribute("href", encodedUri);
+    link.setAttribute("download", `transaction_history_${new Date().toISOString().split('T')[0]}.csv`);
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+
+    // Update last downloaded date
+    localStorage.setItem('last_transaction_download', new Date().toISOString());
+    setIsReminderOpen(false);
+    toast('Transaction history downloaded successfully', 'success');
   };
 
   // Reset to page 1 when filter toggles
@@ -174,6 +240,22 @@ export default function TransactionsPage() {
   const safePage = Math.min(page, totalPages);
   const paginated = transactions.slice((safePage - 1) * PAGE_SIZE, safePage * PAGE_SIZE);
 
+  const isLocked = mounted && role === "deliver" && new Date().getHours() >= 18;
+
+  if (isLocked) {
+    return (
+      <div className="flex flex-col items-center justify-center min-h-[60vh]">
+        <div className="w-16 h-16 bg-rose-50 dark:bg-rose-950/20 text-rose-500 rounded-full flex items-center justify-center mb-4 border border-rose-100 dark:border-rose-900/30">
+          <Clock className="w-8 h-8" />
+        </div>
+        <h2 className="text-xl font-bold text-zinc-900 dark:text-zinc-100 mb-2">Access Restricted</h2>
+        <p className="text-zinc-500 dark:text-zinc-400 text-center max-w-md">
+          Transactions are locked after 6 PM for delivery personnel. Please try again tomorrow during working hours.
+        </p>
+      </div>
+    );
+  }
+
   return (
     <div className="space-y-6">
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
@@ -181,9 +263,14 @@ export default function TransactionsPage() {
           <h2 className="text-xl font-semibold text-zinc-900 dark:text-zinc-100">Transactions</h2>
           <p className="text-sm text-zinc-500 dark:text-zinc-400">Record and view product moving history</p>
         </div>
-        <Button onClick={() => setIsModalOpen(true)}>
-          <Plus className="w-4 h-4" /> New Transaction
-        </Button>
+        <div className="flex gap-2">
+          <Button onClick={downloadCSV} variant="secondary">
+            <Download className="w-4 h-4" /> Export CSV
+          </Button>
+          <Button onClick={() => setIsModalOpen(true)}>
+            <Plus className="w-4 h-4" /> New Transaction
+          </Button>
+        </div>
       </div>
 
       <Card className="p-0 overflow-hidden border border-zinc-100 dark:border-zinc-800/80 shadow-[0_8px_30px_rgb(0,0,0,0.015),0_1px_2px_rgb(0,0,0,0.01)] bg-white dark:bg-[#0c0c14]">
@@ -216,7 +303,7 @@ export default function TransactionsPage() {
           <>
             <div className="overflow-x-auto">
               <table className="w-full text-xs text-left">
-                <thead className="bg-zinc-50/50 dark:bg-zinc-900/40 border-b border-zinc-100 dark:border-zinc-800/80 text-[10px] font-semibold uppercase tracking-wider text-zinc-400 dark:text-zinc-505">
+                <thead className="bg-zinc-50/50 dark:bg-zinc-900/40 border-b border-zinc-100 dark:border-zinc-800/80 text-[10px] font-semibold uppercase tracking-wider text-zinc-400 dark:text-zinc-400">
                   <tr>
                     <th className="px-3 sm:px-6 py-3 sm:py-4.5 font-semibold">Date</th>
                     <th className="px-3 sm:px-6 py-3 sm:py-4.5 font-semibold">Product</th>
@@ -231,26 +318,26 @@ export default function TransactionsPage() {
                     <tr key={t._id} className="hover:bg-zinc-50/30 dark:hover:bg-zinc-900/10 transition-colors">
                       <td className="px-3 sm:px-6 py-3 sm:py-4 text-zinc-500 dark:text-zinc-400 font-medium">
                         <div className="flex items-center gap-1.5 whitespace-nowrap">
-                          <Clock className="w-3.5 h-3.5 text-zinc-350 dark:text-zinc-650" />
+                          <Clock className="w-3.5 h-3.5 text-zinc-455 dark:text-zinc-500" />
                           {new Date(t.date).toLocaleDateString('en-LK', { day: '2-digit', month: 'short', year: 'numeric' })}
                         </div>
                       </td>
-                      <td className="px-3 sm:px-6 py-3 sm:py-4 font-semibold text-zinc-800 dark:text-zinc-155">
+                      <td className="px-3 sm:px-6 py-3 sm:py-4 font-semibold text-zinc-800 dark:text-zinc-200">
                         <div className="flex flex-col sm:flex-row sm:items-center sm:gap-2">
                           <span className="truncate max-w-[120px] sm:max-w-none">{t.product?.name || 'Deleted Product'}</span>
                           <span className="text-zinc-400 dark:text-zinc-500 font-mono text-[9px] sm:text-[10px]">({t.product?.sku || 'N/A'})</span>
                         </div>
                       </td>
                       <td className="px-3 sm:px-6 py-3 sm:py-4 text-center">
-                        <Badge variant={t.type === 'in' ? 'success' : 'danger'}>
-                          {t.type === 'in' ? 'IN' : 'OUT'}
+                        <Badge variant={t.type === 'in' ? 'success' : t.type === 'return' ? 'warning' : 'danger'}>
+                          {t.type === 'in' ? 'IN' : t.type === 'return' ? 'RETURN' : 'OUT'}
                         </Badge>
                       </td>
-                      <td className={`px-3 sm:px-6 py-3 sm:py-4 text-right font-extrabold tabular-nums ${t.type === 'in' ? 'text-emerald-600 dark:text-emerald-400' : 'text-rose-600 dark:text-rose-400'}`}>
-                        {t.type === 'in' ? `+${t.quantity}` : `-${t.quantity}`}
+                      <td className={`px-3 sm:px-6 py-3 sm:py-4 text-right font-extrabold tabular-nums ${t.type === 'in' ? 'text-emerald-600 dark:text-emerald-400' : t.type === 'return' ? 'text-amber-600 dark:text-amber-400' : 'text-rose-600 dark:text-rose-400'}`}>
+                        {t.type === 'in' || t.type === 'return' ? `+${t.quantity}` : `-${t.quantity}`}
                       </td>
                       <td className="px-3 sm:px-6 py-3 sm:py-4 text-zinc-500 dark:text-zinc-400 font-medium hidden sm:table-cell">{t.createdBy?.name || '—'}</td>
-                      <td className="px-3 sm:px-6 py-3 sm:py-4 text-zinc-600 dark:text-zinc-405 max-w-[200px] truncate italic hidden sm:table-cell">{t.note || '—'}</td>
+                      <td className="px-3 sm:px-6 py-3 sm:py-4 text-zinc-600 dark:text-zinc-400 max-w-[200px] truncate italic hidden sm:table-cell" title={t.note || ''}>{t.note || '—'}</td>
                     </tr>
                   ))}
                 </tbody>
@@ -327,7 +414,7 @@ export default function TransactionsPage() {
           <div className="space-y-1.5">
             <label className="text-xs font-semibold text-zinc-500 dark:text-zinc-400 uppercase tracking-wide">Note (Optional)</label>
             <textarea
-              className="w-full px-3.5 py-2.5 bg-zinc-50/50 dark:bg-zinc-900/40 border border-zinc-200 dark:border-zinc-800 rounded-xl text-sm focus:outline-none focus:border-indigo-500 focus:ring-4 focus:ring-indigo-500/5 transition-all duration-200 text-zinc-800 dark:text-zinc-150 placeholder-zinc-400 dark:placeholder-zinc-650"
+              className="w-full px-3.5 py-2.5 bg-zinc-50/50 dark:bg-zinc-900/40 border border-zinc-200 dark:border-zinc-800 rounded-xl text-sm focus:outline-none focus:border-indigo-500 focus:ring-4 focus:ring-indigo-500/5 transition-all duration-200 text-zinc-800 dark:text-zinc-200 placeholder-zinc-400 dark:placeholder-zinc-500"
               rows={2}
               value={formData.note}
               onChange={(e) => setFormData({...formData, note: e.target.value})}
@@ -344,6 +431,26 @@ export default function TransactionsPage() {
             </Button>
           </div>
         </form>
+      </Modal>
+
+      <Modal 
+        isOpen={isReminderOpen} 
+        onClose={() => setIsReminderOpen(false)}
+        title="Weekly Report Reminder"
+      >
+        <div className="space-y-4">
+          <p className="text-sm text-zinc-600 dark:text-zinc-400 leading-relaxed">
+            It has been a week or more since your last transaction history export. Would you like to download the latest records now?
+          </p>
+          <div className="pt-4 flex justify-end gap-3 border-t border-zinc-100 dark:border-zinc-800/60 mt-6">
+            <Button type="button" variant="secondary" onClick={() => setIsReminderOpen(false)}>
+              Remind Me Later
+            </Button>
+            <Button type="button" onClick={downloadCSV}>
+              <Download className="w-4 h-4" /> Export CSV
+            </Button>
+          </div>
+        </div>
       </Modal>
     </div>
   );

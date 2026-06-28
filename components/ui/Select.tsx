@@ -73,7 +73,7 @@ export function Select({
 
       {/* Floating Options Menu */}
       {isOpen && (
-        <div className="absolute z-50 w-full mt-1.5 bg-white dark:bg-[#0c0c14] border border-zinc-150 dark:border-zinc-800/80 rounded-xl shadow-lg shadow-zinc-200/25 dark:shadow-black/50 max-h-60 overflow-y-auto backdrop-blur-md">
+        <div className="absolute z-50 w-full mt-1.5 bg-white dark:bg-[#0c0c14] border border-zinc-200 dark:border-zinc-800/80 rounded-xl shadow-lg shadow-zinc-200/25 dark:shadow-black/50 max-h-60 overflow-y-auto backdrop-blur-md">
           <ul className="p-1 space-y-0.5">
             {options.length === 0 ? (
               <li className="px-3 py-2 text-xs text-zinc-400 dark:text-zinc-500 text-center">

@@ -106,7 +106,19 @@ export default function InventoryPage() {
     }
   };
 
-  useEffect(() => { fetchProducts(); }, []);
+  useEffect(() => { 
+    fetchProducts(); 
+    
+    // Redirect deliver role
+    const checkRole = async () => {
+      const res = await fetch('/api/auth/session');
+      const session = await res.json();
+      if (session?.user?.role === 'deliver') {
+        router.push('/products');
+      }
+    };
+    checkRole();
+  }, [router]);
 
   // -- Derived summary counts --
   const totalItems = products.length;
@@ -160,12 +172,12 @@ export default function InventoryPage() {
         {/* Total items card */}
         <div className="p-4 rounded-2xl bg-white dark:bg-[#0c0c14] border border-zinc-100 dark:border-zinc-800/80 shadow-[0_8px_30px_rgb(0,0,0,0.015),0_1px_2px_rgb(0,0,0,0.01)] hover:-translate-y-[1.5px] hover:shadow-[0_12px_36px_rgb(0,0,0,0.025),0_1px_3px_rgb(0,0,0,0.015)] transition-all duration-300">
           <p className="text-[10px] font-semibold text-zinc-400 dark:text-zinc-500 uppercase tracking-wider">Total Items</p>
-          <p className="text-2xl font-bold text-zinc-800 dark:text-zinc-150 mt-1.5 tracking-tight">{totalItems.toLocaleString()}</p>
+          <p className="text-2xl font-bold text-zinc-800 dark:text-zinc-200 mt-1.5 tracking-tight">{totalItems.toLocaleString()}</p>
         </div>
         {/* Units in stock */}
         <div className="p-4 rounded-2xl bg-white dark:bg-[#0c0c14] border border-zinc-100 dark:border-zinc-800/80 shadow-[0_8px_30px_rgb(0,0,0,0.015),0_1px_2px_rgb(0,0,0,0.01)] hover:-translate-y-[1.5px] hover:shadow-[0_12px_36px_rgb(0,0,0,0.025),0_1px_3px_rgb(0,0,0,0.015)] transition-all duration-300">
           <p className="text-[10px] font-semibold text-zinc-400 dark:text-zinc-500 uppercase tracking-wider">Units In Stock</p>
-          <p className="text-2xl font-bold text-zinc-800 dark:text-zinc-150 mt-1.5 tracking-tight">{totalUnits.toLocaleString()}</p>
+          <p className="text-2xl font-bold text-zinc-800 dark:text-zinc-200 mt-1.5 tracking-tight">{totalUnits.toLocaleString()}</p>
         </div>
         {/* Low Stock */}
         <div className="p-4 rounded-2xl bg-amber-50/10 dark:bg-amber-950/5 border border-amber-100/50 dark:border-amber-900/10 shadow-[0_8px_30px_rgb(0,0,0,0.015),0_1px_2px_rgb(0,0,0,0.01)] hover:-translate-y-[1.5px] hover:shadow-[0_12px_36px_rgb(0,0,0,0.025),0_1px_3px_rgb(0,0,0,0.015)] transition-all duration-300">
@@ -244,7 +256,7 @@ export default function InventoryPage() {
                             </div>
                           )}
                           <div>
-                            <span className="font-semibold text-zinc-800 dark:text-zinc-150 group-hover:text-indigo-600 dark:group-hover:text-indigo-400 transition-colors block truncate max-w-[200px]">
+                            <span className="font-semibold text-zinc-800 dark:text-zinc-200 group-hover:text-indigo-600 dark:group-hover:text-indigo-400 transition-colors block truncate max-w-[200px]">
                               {product.name}
                             </span>
                             <span className="font-mono text-zinc-400 dark:text-zinc-500 text-[10px]">
@@ -260,12 +272,12 @@ export default function InventoryPage() {
                       </td>
 
                       {/* Quantity */}
-                      <td className="px-6 py-4 text-right font-bold text-zinc-850 dark:text-zinc-200">
+                      <td className="px-6 py-4 text-right font-bold text-zinc-800 dark:text-zinc-200">
                         {product.quantity.toLocaleString()}
                       </td>
 
                       {/* Price */}
-                      <td className="px-6 py-4 text-right text-zinc-750 dark:text-zinc-300 font-medium hidden md:table-cell">
+                      <td className="px-6 py-4 text-right text-zinc-700 dark:text-zinc-300 font-medium hidden md:table-cell">
                         Rs.&nbsp;{product.unitPrice?.toLocaleString('en-LK', { minimumFractionDigits: 2 })}
                       </td>
 

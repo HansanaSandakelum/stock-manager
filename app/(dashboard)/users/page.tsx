@@ -263,6 +263,8 @@ export default function UsersPage() {
     switch (userRole) {
       case 'admin':
         return <Badge variant="danger">Admin</Badge>;
+      case 'deliver':
+        return <Badge variant="warning">Deliver</Badge>;
       case 'staff':
       default:
         return <Badge variant="success">Staff</Badge>;
@@ -317,7 +319,7 @@ export default function UsersPage() {
         ) : (
           <div className="overflow-x-auto">
             <table className="w-full text-xs text-left">
-              <thead className="bg-zinc-50/50 dark:bg-zinc-900/40 border-b border-zinc-100 dark:border-zinc-800/80 text-[10px] font-semibold uppercase tracking-wider text-zinc-400 dark:text-zinc-505">
+              <thead className="bg-zinc-50/50 dark:bg-zinc-900/40 border-b border-zinc-100 dark:border-zinc-800/80 text-[10px] font-semibold uppercase tracking-wider text-zinc-400 dark:text-zinc-400">
                 <tr>
                   <th className="px-3 sm:px-6 py-3 sm:py-4.5 font-semibold">User</th>
                   <th className="px-3 sm:px-6 py-3 sm:py-4.5 font-semibold hidden sm:table-cell">Email</th>
@@ -329,13 +331,13 @@ export default function UsersPage() {
               <tbody className="divide-y divide-zinc-100 dark:divide-zinc-800/60">
                 {users.map((user) => (
                   <tr key={user._id} className="hover:bg-zinc-50/30 dark:hover:bg-zinc-900/10 transition-colors">
-                    <td className="px-3 sm:px-6 py-3 sm:py-4 font-semibold text-zinc-800 dark:text-zinc-150 flex items-center gap-3">
+                    <td className="px-3 sm:px-6 py-3 sm:py-4 font-semibold text-zinc-800 dark:text-zinc-200 flex items-center gap-3">
                       <div className="w-8 h-8 rounded-xl bg-gradient-to-tr from-indigo-50 to-blue-50 dark:from-indigo-950/20 dark:to-blue-950/20 text-indigo-600 dark:text-indigo-400 flex items-center justify-center font-bold text-xs border border-indigo-100/50 dark:border-indigo-900/30">
                         {user.name.charAt(0).toUpperCase()}
                       </div>
                       <div className="flex flex-col">
                         <span className="text-zinc-900 dark:text-zinc-100">{user.name}</span>
-                        <span className="text-[10px] text-zinc-400 dark:text-zinc-505 sm:hidden mt-0.5">{user.email}</span>
+                        <span className="text-[10px] text-zinc-400 dark:text-zinc-400 sm:hidden mt-0.5">{user.email}</span>
                         {(session?.user as any)?.id === user._id && (
                           <span className="text-[10px] text-indigo-500 font-medium">(You)</span>
                         )}
@@ -423,6 +425,7 @@ export default function UsersPage() {
               onChange={setRole}
               options={[
                 { value: 'staff', label: 'Staff (Inventory Management & Operations)' },
+                { value: 'deliver', label: 'Deliver (Delivery & Stock Handling)' },
                 { value: 'admin', label: 'Administrator (Full Access & User Management)' }
               ]}
             />
@@ -472,6 +475,7 @@ export default function UsersPage() {
               disabled={(session?.user as any)?.id === selectedUser?._id}
               options={[
                 { value: 'staff', label: 'Staff (Inventory Management & Operations)' },
+                { value: 'deliver', label: 'Deliver (Delivery & Stock Handling)' },
                 { value: 'admin', label: 'Administrator (Full Access & User Management)' }
               ]}
             />

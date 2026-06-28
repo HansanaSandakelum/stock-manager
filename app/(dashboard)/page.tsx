@@ -35,6 +35,18 @@ export default function DashboardPage() {
     fetchDashboardData();
   }, []);
 
+  useEffect(() => {
+    // Redirect deliver role to products
+    const fetchSession = async () => {
+      const res = await fetch('/api/auth/session');
+      const session = await res.json();
+      if (session?.user?.role === 'deliver') {
+        window.location.href = '/products';
+      }
+    };
+    fetchSession();
+  }, []);
+
   if (loading) {
     return (
       <div className="space-y-6 animate-in fade-in duration-500">

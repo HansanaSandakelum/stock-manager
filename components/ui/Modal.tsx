@@ -33,7 +33,7 @@ export function Modal({ isOpen, onClose, title, children }: ModalProps) {
           <h2 className="text-lg font-semibold text-zinc-900 dark:text-zinc-100">{title}</h2>
           <button 
             onClick={onClose}
-            className="text-zinc-400 hover:text-zinc-650 dark:hover:text-zinc-300 transition-colors p-1 rounded-lg hover:bg-zinc-50 dark:hover:bg-zinc-900 cursor-pointer active:scale-95"
+            className="text-zinc-400 hover:text-zinc-600 dark:hover:text-zinc-300 transition-colors p-1 rounded-lg hover:bg-zinc-50 dark:hover:bg-zinc-900 cursor-pointer active:scale-95"
           >
             <X className="w-5 h-5" />
           </button>

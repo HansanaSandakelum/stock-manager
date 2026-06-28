@@ -1,0 +1,65 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" width="100%" height="100%">
+  <defs>
+    <linearGradient id="bgGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#0c0c14" />
+      <stop offset="100%" stop-color="#06060a" />
+    </linearGradient>
+    <linearGradient id="boxGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#818cf8" />
+      <stop offset="50%" stop-color="#6366f1" />
+      <stop offset="100%" stop-color="#3b82f6" />
+    </linearGradient>
+    <linearGradient id="glowGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#6366f1" stop-opacity="0.6" />
+      <stop offset="100%" stop-color="#3b82f6" stop-opacity="0.1" />
+    </linearGradient>
+    <filter id="glow" x="-20%" y="-20%" width="140%" height="140%">
+      <feGaussianBlur stdDeviation="12" result="blur" />
+      <feComposite in="SourceGraphic" in2="blur" operator="over" />
+    </filter>
+  </defs>
+
+  <!-- Background -->
+  <rect width="512" height="512" rx="128" fill="url(#bgGrad)" />
+  <rect width="504" height="504" x="4" y="4" rx="124" fill="none" stroke="#27273a" stroke-width="8" opacity="0.5" />
+
+  <!-- Ambient Glow behind the box -->
+  <circle cx="256" cy="256" r="140" fill="url(#glowGrad)" filter="url(#glow)" />
+
+  <!-- 3D Package Box Icon -->
+  <g transform="translate(128, 110)">
+    <!-- Left face of the isometric box -->
+    <path d="M 128 75 L 128 235 L 10 167 L 10 7 L Z" fill="#4f46e5" opacity="0.85" />
+    
+    <!-- Right face of the isometric box -->
+    <path d="M 128 75 L 246 7 L 246 167 L 128 235 Z" fill="url(#boxGrad)" />
+    
+    <!-- Top face of the isometric box -->
+    <path d="M 128 75 L 10 7 L 128 -61 L 246 7 Z" fill="#818cf8" />
+
+    <!-- Packaging tape details -->
+    <!-- Top tape -->
+    <path d="M 97 -45 L 97 91 L 159 55 L 159 -61 Z" fill="#312e81" opacity="0.6" />
+    <!-- Side tape left -->
+    <path d="M 97 91 L 97 217 L 10 167 M 10 7" stroke="#312e81" stroke-width="8" stroke-linecap="round" stroke-linejoin="round" fill="none" opacity="0.3" />
+    
+    <!-- Box contours / highlights -->
+    <path d="M 10 7 L 128 75 L 246 7" stroke="#ffffff" stroke-width="4" stroke-linecap="round" stroke-linejoin="round" fill="none" opacity="0.4" />
+    <path d="M 128 75 L 128 235" stroke="#ffffff" stroke-width="4" stroke-linecap="round" fill="none" opacity="0.3" />
+    <path d="M 10 7 L 10 167 L 128 235 L 246 167 L 246 7 L 128 -61 Z" stroke="#818cf8" stroke-width="6" stroke-linejoin="round" fill="none" opacity="0.5" />
+    
+    <!-- Barcode style details on right face -->
+    <g transform="translate(150, 110) skewY(30)">
+      <line x1="0" y1="0" x2="0" y2="40" stroke="#ffffff" stroke-width="6" opacity="0.7" />
+      <line x1="12" y1="0" x2="12" y2="40" stroke="#ffffff" stroke-width="3" opacity="0.7" />
+      <line x1="20" y1="0" x2="20" y2="40" stroke="#ffffff" stroke-width="9" opacity="0.7" />
+      <line x1="36" y1="0" x2="36" y2="40" stroke="#ffffff" stroke-width="4" opacity="0.7" />
+      <line x1="48" y1="0" x2="48" y2="40" stroke="#ffffff" stroke-width="6" opacity="0.7" />
+    </g>
+    
+    <!-- Checklist symbol details on left face -->
+    <g transform="translate(45, 100) skewY(-30)">
+      <polyline points="0,15 15,30 40,0" fill="none" stroke="#60a5fa" stroke-width="8" stroke-linecap="round" stroke-linejoin="round" filter="url(#glow)" />
+    </g>
+  </g>
+</svg>

@@ -9,6 +9,9 @@ const plusJakartaSans = Plus_Jakarta_Sans({ subsets: ["latin"] });
 export const metadata: Metadata = {
   title: "Stock Manager",
   description: "Modern Stock Management System",
+  icons: {
+    icon: "/icon.svg",
+  },
 };
 
 export default function RootLayout({
@@ -17,8 +20,8 @@ export default function RootLayout({
   children: React.ReactNode;
 }) {
   return (
-    <html lang="en">
-      <body className={plusJakartaSans.className}>
+    <html lang="en" suppressHydrationWarning>
+      <body className={plusJakartaSans.className} suppressHydrationWarning>
         <Providers>
           {children}
           <Toaster />

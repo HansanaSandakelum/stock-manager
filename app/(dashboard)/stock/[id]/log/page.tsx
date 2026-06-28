@@ -191,7 +191,7 @@ export default function ProductLogPage() {
         <div className="flex items-center gap-3">
           <button
             onClick={() => router.push('/stock')}
-            className="p-2 rounded-xl text-zinc-400 hover:text-zinc-900 dark:hover:text-zinc-150 hover:bg-zinc-100 dark:hover:bg-zinc-800 transition-colors border border-zinc-200 dark:border-zinc-800 cursor-pointer active:scale-95"
+            className="p-2 rounded-xl text-zinc-400 hover:text-zinc-900 dark:hover:text-zinc-200 hover:bg-zinc-100 dark:hover:bg-zinc-800 transition-colors border border-zinc-200 dark:border-zinc-800 cursor-pointer active:scale-95"
             aria-label="Back to Stock"
           >
             <ArrowLeft className="w-4 h-4" />
@@ -224,49 +224,49 @@ export default function ProductLogPage() {
         {/* Metric 1: Current Qty */}
         <Card className="px-4 py-3 bg-white dark:bg-[#0c0c14] border-zinc-100 dark:border-zinc-800/70 flex flex-col justify-between h-24">
           <div className="flex justify-between items-center">
-            <span className="text-[10px] font-semibold text-zinc-400 dark:text-zinc-505 uppercase tracking-wider">Current Stock</span>
+            <span className="text-[10px] font-semibold text-zinc-400 dark:text-zinc-400 uppercase tracking-wider">Current Stock</span>
             <Package className="w-3.5 h-3.5 text-zinc-400" />
           </div>
           <div className="mt-2 flex items-baseline gap-2">
-            <span className="text-2xl font-extrabold text-zinc-850 dark:text-zinc-100 tabular-nums">
+            <span className="text-2xl font-extrabold text-zinc-800 dark:text-zinc-100 tabular-nums">
               {product.quantity.toLocaleString()}
             </span>
-            <span className="text-[9px] font-medium text-zinc-450 dark:text-zinc-505 uppercase tracking-wide">units</span>
+            <span className="text-[9px] font-medium text-zinc-400 dark:text-zinc-400 uppercase tracking-wide">units</span>
           </div>
         </Card>
 
         {/* Metric 2: Stock Value */}
         <Card className="px-4 py-3 bg-white dark:bg-[#0c0c14] border-zinc-100 dark:border-zinc-800/70 flex flex-col justify-between h-24">
           <div className="flex justify-between items-center">
-            <span className="text-[10px] font-semibold text-zinc-400 dark:text-zinc-555 uppercase tracking-wider">Inventory Value</span>
+            <span className="text-[10px] font-semibold text-zinc-400 dark:text-zinc-400 uppercase tracking-wider">Inventory Value</span>
             <DollarSign className="w-3.5 h-3.5 text-emerald-500" />
           </div>
           <div className="mt-2 flex flex-col">
             <span className="text-base font-extrabold text-emerald-600 dark:text-emerald-400 truncate">
               {fmtCurrency(product.quantity * product.unitPrice)}
             </span>
-            <span className="text-[9px] text-zinc-400 dark:text-zinc-555 truncate mt-0.5">Unit: {fmtCurrency(product.unitPrice)}</span>
+            <span className="text-[9px] text-zinc-400 dark:text-zinc-400 truncate mt-0.5">Unit: {fmtCurrency(product.unitPrice)}</span>
           </div>
         </Card>
 
         {/* Metric 3: Log count */}
         <Card className="px-4 py-3 bg-white dark:bg-[#0c0c14] border-zinc-100 dark:border-zinc-800/70 flex flex-col justify-between h-24">
           <div className="flex justify-between items-center">
-            <span className="text-[10px] font-semibold text-zinc-400 dark:text-zinc-505 uppercase tracking-wider">Log Entries</span>
+            <span className="text-[10px] font-semibold text-zinc-400 dark:text-zinc-400 uppercase tracking-wider">Log Entries</span>
             <Activity className="w-3.5 h-3.5 text-indigo-400" />
           </div>
           <div className="mt-2 flex items-baseline gap-2">
             <span className="text-2xl font-extrabold text-indigo-650 dark:text-indigo-400 tabular-nums">
               {transactions.length}
             </span>
-            <span className="text-[9px] font-medium text-zinc-450 dark:text-zinc-505 uppercase tracking-wide">changes</span>
+            <span className="text-[9px] font-medium text-zinc-400 dark:text-zinc-400 uppercase tracking-wide">changes</span>
           </div>
         </Card>
 
         {/* Metric 4: Net change */}
         <Card className="px-4 py-3 bg-white dark:bg-[#0c0c14] border-zinc-100 dark:border-zinc-800/70 flex flex-col justify-between h-24">
           <div className="flex justify-between items-center">
-            <span className="text-[10px] font-semibold text-zinc-400 dark:text-zinc-505 uppercase tracking-wider">Net Adjustments</span>
+            <span className="text-[10px] font-semibold text-zinc-400 dark:text-zinc-400 uppercase tracking-wider">Net Adjustments</span>
             <Clock className="w-3.5 h-3.5 text-amber-500" />
           </div>
           <div className="mt-2 flex items-center justify-between">
@@ -304,7 +304,7 @@ export default function ProductLogPage() {
         <div className="flex items-center justify-between px-5 py-4 border-b border-zinc-100 dark:border-zinc-800/60 bg-zinc-50/20 dark:bg-zinc-900/30">
           <div className="flex items-center gap-2">
             <Clock className="w-4 h-4 text-zinc-400" />
-            <h3 className="text-xs font-semibold text-zinc-400 dark:text-zinc-505 uppercase tracking-wider">
+            <h3 className="text-xs font-semibold text-zinc-400 dark:text-zinc-400 uppercase tracking-wider">
               Chronological Audit Trail
             </h3>
           </div>
@@ -312,9 +312,9 @@ export default function ProductLogPage() {
         </div>
 
         {transactions.length === 0 ? (
-          <div className="flex flex-col items-center justify-center py-16 text-zinc-400 dark:text-zinc-650 bg-white dark:bg-[#0c0c14]">
-            <Package className="w-8 h-8 mb-2 opacity-30 text-zinc-350 dark:text-zinc-600" />
-            <p className="text-xs font-bold text-zinc-500 dark:text-zinc-400">No logs found</p>
+          <div className="flex flex-col items-center justify-center py-16 text-zinc-400 dark:text-zinc-500 bg-white dark:bg-[#0c0c14]">
+            <Package className="w-8 h-8 mb-2 opacity-30 text-zinc-300 dark:text-zinc-600" />
+            <p className="text-xs font-bold text-zinc-550 dark:text-zinc-400">No logs found</p>
             <p className="text-[10px] mt-0.5 text-zinc-400 dark:text-zinc-500">Record stock actions on the Stock Handling page to see logs here.</p>
           </div>
         ) : (
@@ -338,7 +338,7 @@ export default function ProductLogPage() {
                         {/* Timestamp */}
                         <td className="px-3 sm:px-5 py-3 text-zinc-500 dark:text-zinc-400 font-medium whitespace-nowrap">
                           <div className="flex items-center gap-1.5">
-                            <Calendar className="w-3.5 h-3.5 text-zinc-350 dark:text-zinc-650 flex-shrink-0" />
+                            <Calendar className="w-3.5 h-3.5 text-zinc-400 dark:text-zinc-500 flex-shrink-0" />
                             <span>{fmtDate(tx.date ?? tx.createdAt)}</span>
                           </div>
                         </td>
@@ -360,7 +360,7 @@ export default function ProductLogPage() {
                         </td>
 
                         {/* Recorded By */}
-                        <td className="px-3 sm:px-5 py-3 text-zinc-505 dark:text-zinc-400 font-medium hidden sm:table-cell">
+                        <td className="px-3 sm:px-5 py-3 text-zinc-500 dark:text-zinc-400 font-medium hidden sm:table-cell">
                           {tx.createdBy?.name || '-'}
                         </td>
 

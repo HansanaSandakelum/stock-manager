@@ -185,7 +185,7 @@ export default function InventoryDetailPage() {
         <div className="flex items-center gap-3">
           <button
             onClick={() => router.push('/inventory')}
-            className="p-2 rounded-xl text-zinc-400 hover:text-zinc-900 dark:hover:text-zinc-150 hover:bg-zinc-100 dark:hover:bg-zinc-800 transition-colors border border-zinc-200 dark:border-zinc-800 cursor-pointer active:scale-[0.95]"
+            className="p-2 rounded-xl text-zinc-400 hover:text-zinc-900 dark:hover:text-zinc-200 hover:bg-zinc-100 dark:hover:bg-zinc-800 transition-colors border border-zinc-200 dark:border-zinc-800 cursor-pointer active:scale-[0.95]"
             aria-label="Back to inventory"
           >
             <ArrowLeft className="w-4 h-4" />
@@ -313,17 +313,17 @@ export default function InventoryDetailPage() {
                 </span>
               </div>
               {transactions.length > 0 && (
-                <span className="text-[10px] font-semibold text-zinc-400 dark:text-zinc-505 bg-zinc-50 dark:bg-zinc-900/50 px-2 py-0.5 rounded-md border border-zinc-100 dark:border-zinc-800/80">
+                <span className="text-[10px] font-semibold text-zinc-400 dark:text-zinc-400 bg-zinc-50 dark:bg-zinc-900/50 px-2 py-0.5 rounded-md border border-zinc-100 dark:border-zinc-800/80">
                   {transactions.length} movement{transactions.length !== 1 ? 's' : ''}
                 </span>
               )}
             </div>
 
             {transactions.length === 0 ? (
-              <div className="flex flex-col items-center py-12 text-zinc-400 dark:text-zinc-650 bg-white dark:bg-[#0c0c14]">
+              <div className="flex flex-col items-center py-12 text-zinc-400 dark:text-zinc-500 bg-white dark:bg-[#0c0c14]">
                 <PackageOpen className="w-8 h-8 mb-2 opacity-40 text-zinc-300 dark:text-zinc-600" />
                 <p className="text-xs font-semibold text-zinc-500 dark:text-zinc-400">No movements recorded yet.</p>
-                <p className="text-[10px] mt-0.5 text-zinc-450 dark:text-zinc-500">Use Receive or Issue to log stock changes.</p>
+                <p className="text-[10px] mt-0.5 text-zinc-400 dark:text-zinc-500">Use Receive or Issue to log stock changes.</p>
               </div>
             ) : (
               <div className="relative bg-white dark:bg-[#0c0c14]">
@@ -357,7 +357,7 @@ export default function InventoryDetailPage() {
                           {/* Row 1: movement type + qty + badge */}
                           <div className="flex items-center justify-between gap-2 flex-wrap">
                             <div className="flex items-center gap-2">
-                              <span className="text-xs font-semibold text-zinc-800 dark:text-zinc-150">
+                              <span className="text-xs font-semibold text-zinc-800 dark:text-zinc-200">
                                 {isIn ? 'Stock received' : 'Stock issued'}
                               </span>
                               <span className={`text-xs font-extrabold tabular-nums ${
@@ -368,8 +368,8 @@ export default function InventoryDetailPage() {
                             </div>
                             <span className={`text-[9px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-full shrink-0 border ${
                               isIn
-                                ? 'bg-emerald-50 text-emerald-700 border-emerald-100 dark:bg-emerald-955/20 dark:text-emerald-400 dark:border-emerald-900/20'
-                                : 'bg-rose-50 text-rose-700 border-rose-100 dark:bg-rose-955/20 dark:text-rose-400 dark:border-rose-900/20'
+                                ? 'bg-emerald-50 text-emerald-700 border-emerald-100 dark:bg-emerald-950/20 dark:text-emerald-400 dark:border-emerald-900/20'
+                                : 'bg-rose-50 text-rose-700 border-rose-100 dark:bg-rose-950/20 dark:text-rose-400 dark:border-rose-900/20'
                             }`}>
                               {isIn ? 'In' : 'Out'}
                             </span>
@@ -377,15 +377,15 @@ export default function InventoryDetailPage() {
 
                           {/* Row 2: date stamp */}
                           <div className="flex items-center gap-1 mt-1">
-                            <Clock className="w-3.5 h-3.5 text-zinc-350 dark:text-zinc-600 shrink-0" />
-                            <span className="text-[10px] text-zinc-450 dark:text-zinc-500 font-medium">
+                            <Clock className="w-3.5 h-3.5 text-zinc-400 dark:text-zinc-600 shrink-0" />
+                            <span className="text-[10px] text-zinc-400 dark:text-zinc-500 font-medium">
                               {fmtDate(tx.date ?? tx.createdAt)}
                             </span>
                           </div>
 
                           {/* Row 3: note */}
                           {tx.note && (
-                            <p className="mt-2 text-[11px] text-zinc-650 dark:text-zinc-450 bg-zinc-50 dark:bg-zinc-900/50 rounded-xl px-3.5 py-2 border border-zinc-150/50 dark:border-zinc-800/60 leading-relaxed italic">
+                            <p className="mt-2 text-[11px] text-zinc-600 dark:text-zinc-400 bg-zinc-50 dark:bg-zinc-900/50 rounded-xl px-3.5 py-2 border border-zinc-200/50 dark:border-zinc-800/60 leading-relaxed italic">
                               &ldquo;{tx.note}&rdquo;
                             </p>
                           )}
@@ -393,7 +393,7 @@ export default function InventoryDetailPage() {
                           {/* Row 4: user */}
                           {tx.createdBy?.name && (
                             <p className="mt-2 text-[10px] text-zinc-400 dark:text-zinc-500 font-medium">
-                              Recorded by <span className="font-semibold text-zinc-550 dark:text-zinc-455">{tx.createdBy.name}</span>
+                              Recorded by <span className="font-semibold text-zinc-500 dark:text-zinc-400">{tx.createdBy.name}</span>
                             </p>
                           )}
                         </div>
@@ -420,7 +420,7 @@ export default function InventoryDetailPage() {
               <p className="text-5xl font-extrabold text-zinc-900 dark:text-zinc-100 tracking-tight">
                 {product.quantity.toLocaleString()}
               </p>
-              <p className="text-xs text-zinc-450 dark:text-zinc-500 font-semibold uppercase tracking-wider mt-1">units on hand</p>
+              <p className="text-xs text-zinc-400 dark:text-zinc-500 font-semibold uppercase tracking-wider mt-1">units on hand</p>
               <div className="mt-3">
                 <Badge variant={statusVariant}>{statusLabel}</Badge>
               </div>
@@ -481,7 +481,7 @@ export default function InventoryDetailPage() {
                             ? t === 'in'
                               ? 'bg-emerald-600 text-white shadow-sm'
                               : 'bg-rose-600 text-white shadow-sm'
-                            : 'text-zinc-500 dark:text-zinc-400 hover:bg-zinc-100 dark:hover:bg-zinc-850 cursor-pointer'
+                            : 'text-zinc-500 dark:text-zinc-400 hover:bg-zinc-100 dark:hover:bg-zinc-800 cursor-pointer'
                         }`}
                       >
                         {t === 'in' ? 'Stock Receipt' : 'Stock Issue'}
