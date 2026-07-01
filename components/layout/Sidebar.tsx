@@ -20,6 +20,7 @@ import {
   Users,
   Undo2,
   Receipt,
+  Gift,
 } from "lucide-react";
 import { useTheme } from "@/components/ThemeProvider";
 
@@ -31,6 +32,7 @@ const navigation = [
   { name: "Stock Handling", href: "/stock", icon: ClipboardList },
   { name: "Transactions", href: "/transactions", icon: ArrowRightLeft },
   { name: "Credit Bills", href: "/credit-bills", icon: Receipt },
+  { name: "Free Issues", href: "/free-issues", icon: Gift },
   { name: "Returns", href: "/returns", icon: Undo2 },
   { name: "Reports", href: "/reports", icon: FileText },
   { name: "Users", href: "/users", icon: Users },
@@ -56,7 +58,7 @@ export function Sidebar({
     
     // Deliver-only routes
     if (role === "deliver") {
-      return ["/products", "/stock", "/categories", "/transactions", "/returns", "/credit-bills"].includes(item.href);
+      return ["/products", "/stock", "/categories", "/transactions", "/returns", "/credit-bills", "/free-issues"].includes(item.href);
     }
     
     return true;

@@ -21,7 +21,9 @@ export async function GET(req: Request) {
 
     const query: any = {};
     if (product) query.product = product;
-    if (type) query.type = type;
+    if (type) {
+      query.type = type;
+    }
     if (dateFrom || dateTo) {
       query.date = {};
       if (dateFrom) query.date.$gte = new Date(dateFrom);
@@ -74,15 +76,18 @@ export async function POST(req: Request) {
     const product = await Product.findById(productId);
     if (!product) return NextResponse.json({ success: false, error: 'Product not found' }, { status: 404 });
 
-    if (type === 'out' && product.quantity < quantity) {
+    if ((type === 'out' || type === 'free-issue') && product.quantity < quantity) {
       return NextResponse.json({ success: false, error: `Insufficient stock. Current quantity is ${product.quantity}` }, { status: 400 });
     }
 
     // Update product quantity
     if (type === 'in' || type === 'return') {
       product.quantity += quantity;
-    } else {
+    } else if (type === 'out') {
       product.quantity -= quantity;
+    } else if (type === 'free-issue') {
+      product.quantity -= quantity;
+      product.freeIssuedQuantity = (product.freeIssuedQuantity || 0) + quantity;
     }
     await product.save();
 

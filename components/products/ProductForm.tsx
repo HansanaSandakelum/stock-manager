@@ -138,6 +138,25 @@ export function ProductForm({ initialData, isEditing }: ProductFormProps) {
             disabled={isEditing} // usually you shouldn't edit quantity directly after creation
           />
 
+          {isEditing && (
+            <>
+              <Input
+                label="Returned Stock"
+                name="returnedQuantity"
+                type="number"
+                value={initialData?.returnedQuantity || 0}
+                disabled
+              />
+              <Input
+                label="Free Issued Stock"
+                name="freeIssuedQuantity"
+                type="number"
+                value={initialData?.freeIssuedQuantity || 0}
+                disabled
+              />
+            </>
+          )}
+
           <Input
             label="Unit Price (Rs.)"
             name="unitPrice"

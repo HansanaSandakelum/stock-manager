@@ -167,7 +167,7 @@ export default function TransactionsPage() {
       const date = new Date(t.date).toLocaleDateString('en-LK', { day: '2-digit', month: 'short', year: 'numeric' });
       const productName = t.product?.name || 'Deleted Product';
       const sku = t.product?.sku || 'N/A';
-      const type = t.type === 'in' ? 'IN' : t.type === 'return' ? 'RETURN' : 'OUT';
+      const type = t.type === 'in' ? 'IN' : t.type === 'return' ? 'RETURN' : t.type === 'free-issue' ? 'FREE ISSUE' : 'OUT';
       const qty = t.type === 'in' || t.type === 'return' ? `+${t.quantity}` : `-${t.quantity}`;
       const createdBy = t.createdBy?.name || '';
       const note = t.note || '';
@@ -281,7 +281,8 @@ export default function TransactionsPage() {
             options={[
               { value: '', label: 'All Movements' },
               { value: 'in', label: 'Received (Stock In)' },
-              { value: 'out', label: 'Issued (Stock Out)' }
+              { value: 'out', label: 'Issued (Stock Out)' },
+              { value: 'free-issue', label: 'Free Issues' }
             ]}
             className="w-48"
           />
@@ -329,11 +330,11 @@ export default function TransactionsPage() {
                         </div>
                       </td>
                       <td className="px-3 sm:px-6 py-3 sm:py-4 text-center">
-                        <Badge variant={t.type === 'in' ? 'success' : t.type === 'return' ? 'warning' : 'danger'}>
-                          {t.type === 'in' ? 'IN' : t.type === 'return' ? 'RETURN' : 'OUT'}
+                        <Badge variant={t.type === 'in' ? 'success' : t.type === 'return' ? 'warning' : t.type === 'free-issue' ? 'default' : 'danger'}>
+                          {t.type === 'in' ? 'IN' : t.type === 'return' ? 'RETURN' : t.type === 'free-issue' ? 'FREE ISSUE' : 'OUT'}
                         </Badge>
                       </td>
-                      <td className={`px-3 sm:px-6 py-3 sm:py-4 text-right font-extrabold tabular-nums ${t.type === 'in' ? 'text-emerald-600 dark:text-emerald-400' : t.type === 'return' ? 'text-amber-600 dark:text-amber-400' : 'text-rose-600 dark:text-rose-400'}`}>
+                      <td className={`px-3 sm:px-6 py-3 sm:py-4 text-right font-extrabold tabular-nums ${t.type === 'in' ? 'text-emerald-600 dark:text-emerald-400' : t.type === 'return' ? 'text-amber-600 dark:text-amber-400' : t.type === 'free-issue' ? 'text-indigo-600 dark:text-indigo-400' : 'text-rose-600 dark:text-rose-400'}`}>
                         {t.type === 'in' || t.type === 'return' ? `+${t.quantity}` : `-${t.quantity}`}
                       </td>
                       <td className="px-3 sm:px-6 py-3 sm:py-4 text-zinc-500 dark:text-zinc-400 font-medium hidden sm:table-cell">{t.createdBy?.name || '—'}</td>

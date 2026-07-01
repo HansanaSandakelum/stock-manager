@@ -219,7 +219,7 @@ export default function ReturnsPage() {
             options={[
               { value: '', label: 'All Statuses' },
               { value: 'Pending', label: 'Pending' },
-              { value: 'Restocked', label: 'Restocked' },
+              { value: 'Restocked', label: 'Stored (Returns)' },
               { value: 'Discarded', label: 'Discarded' }
             ]}
             className="w-48"
@@ -284,7 +284,7 @@ export default function ReturnsPage() {
                           <div className="flex items-center justify-end gap-2">
                             <button
                               onClick={() => updateStatus(r._id, 'Restocked')}
-                              className="p-1.5 text-emerald-600 hover:bg-emerald-50 dark:hover:bg-emerald-900/20 rounded-lg transition-colors title='Restock Item'"
+                              className="p-1.5 text-emerald-600 hover:bg-emerald-50 dark:hover:bg-emerald-900/20 rounded-lg transition-colors title='Store in Returns'"
                             >
                               <CheckCircle2 className="w-4 h-4" />
                             </button>

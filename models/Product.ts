@@ -5,6 +5,8 @@ export interface IProduct extends Document {
   sku: string;
   category: mongoose.Types.ObjectId;
   quantity: number;
+  returnedQuantity: number;
+  freeIssuedQuantity: number;
   unitPrice: number;
   supplier?: string;
   lowStockThreshold: number;
@@ -18,6 +20,8 @@ const ProductSchema: Schema = new Schema({
   sku: { type: String, required: true, unique: true },
   category: { type: Schema.Types.ObjectId, ref: 'Category' },
   quantity: { type: Number, required: true, default: 0, min: 0 },
+  returnedQuantity: { type: Number, default: 0, min: 0 },
+  freeIssuedQuantity: { type: Number, default: 0, min: 0 },
   unitPrice: { type: Number, required: true, min: 0 },
   supplier: { type: String },
   lowStockThreshold: { type: Number, default: 10 },

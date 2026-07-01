@@ -46,14 +46,14 @@ export async function PATCH(
         return NextResponse.json({ error: "Product not found" }, { status: 404 });
       }
 
-      product.quantity += returnItem.quantity;
+      product.returnedQuantity = (product.returnedQuantity || 0) + returnItem.quantity;
       await product.save();
 
       await Transaction.create({
         product: product._id,
         type: "return",
         quantity: returnItem.quantity,
-        note: `Return #${returnItem._id.toString().substring(0, 8)} Restocked: ${returnItem.reason}`,
+        note: `Return #${returnItem._id.toString().substring(0, 8)} Stored (Returned Stock): ${returnItem.reason}`,
         createdBy: (session.user as any).id,
       });
     }

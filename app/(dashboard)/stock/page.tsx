@@ -983,6 +983,7 @@ export default function StockHandlingPage() {
 
                 <input
                   type="number"
+                  inputMode="numeric"
                   id="dialog-quantity"
                   value={dialog.quantity}
                   onChange={(e) => {
@@ -1217,7 +1218,7 @@ export default function StockHandlingPage() {
             )}
 
             {/* Date */}
-            <div className="space-y-1.5">
+            <div className="space-y-1.5 min-w-0">
               <label className="flex items-center gap-1.5 text-sm font-medium text-zinc-700 dark:text-zinc-300">
                 <CalendarDays className="w-3.5 h-3.5 text-zinc-400" />
                 Date & Time
@@ -1229,7 +1230,7 @@ export default function StockHandlingPage() {
                 onChange={(e) =>
                   setDialog((prev) => ({ ...prev, date: e.target.value }))
                 }
-                className="w-full px-3.5 py-2.5 bg-zinc-50/30 hover:bg-zinc-50/70 focus:bg-white dark:bg-zinc-900/30 dark:hover:bg-zinc-900/60 dark:focus:bg-zinc-900/90 border border-zinc-200 dark:border-zinc-800 rounded-xl text-sm transition-all focus:outline-none focus:border-indigo-500 focus:ring-4 focus:ring-indigo-500/5"
+                className="w-full px-3.5 py-2.5 bg-zinc-50/30 hover:bg-zinc-50/70 focus:bg-white dark:bg-zinc-900/30 dark:hover:bg-zinc-900/60 dark:focus:bg-zinc-900/90 border border-zinc-200 dark:border-zinc-800 rounded-xl text-sm transition-all focus:outline-none focus:border-indigo-500 focus:ring-4 focus:ring-indigo-500/5 max-w-full"
               />
             </div>
 

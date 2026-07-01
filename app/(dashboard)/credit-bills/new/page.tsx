@@ -19,6 +19,7 @@ import {
   Receipt,
 } from "lucide-react";
 import { toast } from "@/components/ui/Toast";
+import { Modal } from "@/components/ui/Modal";
 
 interface Product {
   _id: string;
@@ -43,7 +44,6 @@ export default function CreateCreditBillPage() {
   const [customerAddress, setCustomerAddress] = useState("");
   const [dueDate, setDueDate] = useState("");
   const [note, setNote] = useState("");
-  const [discount, setDiscount] = useState("0");
   const [amountPaid, setAmountPaid] = useState("0");
 
   const [billItems, setBillItems] = useState<BillItemState[]>([
@@ -53,10 +53,8 @@ export default function CreateCreditBillPage() {
   const [products, setProducts] = useState<Product[]>([]);
   const [loadingProducts, setLoadingProducts] = useState(true);
 
-  const [productSearches, setProductSearches] = useState<string[]>([""]);
-  const [openDropdownIdx, setOpenDropdownIdx] = useState<number | null>(null);
-  const desktopRefs = useRef<(HTMLDivElement | null)[]>([]);
-  const mobileRefs = useRef<(HTMLDivElement | null)[]>([]);
+  const [searchModalOpenForIdx, setSearchModalOpenForIdx] = useState<number | null>(null);
+  const [modalSearchQuery, setModalSearchQuery] = useState("");
 
   const [submitting, setSubmitting] = useState(false);
 
@@ -75,28 +73,11 @@ export default function CreateCreditBillPage() {
     fetchProducts();
   }, []);
 
-  useEffect(() => {
-    const handler = (e: MouseEvent) => {
-      const insideDesktop = desktopRefs.current.some(
-        (ref) => ref && ref.contains(e.target as Node)
-      );
-      const insideMobile = mobileRefs.current.some(
-        (ref) => ref && ref.contains(e.target as Node)
-      );
-      if (!insideDesktop && !insideMobile) {
-        setOpenDropdownIdx(null);
-      }
-    };
-    document.addEventListener("mousedown", handler);
-    return () => document.removeEventListener("mousedown", handler);
-  }, []);
-
   const subtotal = useMemo(
     () => billItems.reduce((acc, item) => acc + item.unitPrice * item.quantity, 0),
     [billItems]
   );
-  const discountAmt = useMemo(() => parseFloat(discount) || 0, [discount]);
-  const grandTotal = useMemo(() => Math.max(0, subtotal - discountAmt), [subtotal, discountAmt]);
+  const grandTotal = useMemo(() => Math.max(0, subtotal), [subtotal]);
 
   // Cap amountPaid to grandTotal
   useEffect(() => {
@@ -108,13 +89,11 @@ export default function CreateCreditBillPage() {
 
   const addItem = () => {
     setBillItems((p) => [...p, { product: "", quantity: 1, unitPrice: 0, maxQty: 0 }]);
-    setProductSearches((p) => [...p, ""]);
   };
 
   const removeItem = (idx: number) => {
     if (billItems.length === 1) return;
     setBillItems((p) => p.filter((_, i) => i !== idx));
-    setProductSearches((p) => p.filter((_, i) => i !== idx));
   };
 
   const updateItem = (idx: number, key: string, value: any) => {
@@ -158,7 +137,7 @@ export default function CreateCreditBillPage() {
           customerAddress: customerAddress || undefined,
           dueDate: dueDate || undefined,
           note: note || undefined,
-          discount: discountAmt,
+          discount: 0,
           amountPaid: amountPaidAmt,
           items: itemsToSend.map((i) => ({
             product: i.product,
@@ -225,7 +204,7 @@ export default function CreateCreditBillPage() {
             </div>
             <div className="p-4 grid grid-cols-1 sm:grid-cols-2 gap-4">
               {/* Name – full width */}
-              <div className="sm:col-span-2 space-y-1.5">
+              <div className="sm:col-span-2 space-y-1.5 min-w-0">
                 <label className="text-[10px] font-bold text-zinc-400 dark:text-zinc-500 uppercase tracking-widest block">
                   Customer Name <span className="text-rose-500 normal-case font-normal">*required</span>
                 </label>
@@ -241,13 +220,15 @@ export default function CreateCreditBillPage() {
                 </div>
               </div>
               {/* Phone */}
-              <div className="space-y-1.5">
+              <div className="space-y-1.5 min-w-0">
                 <label className="text-[10px] font-bold text-zinc-400 dark:text-zinc-500 uppercase tracking-widest block">
                   Phone Number
                 </label>
                 <div className="relative">
                   <Phone className="w-4 h-4 absolute left-3.5 top-1/2 -translate-y-1/2 text-zinc-400 pointer-events-none" />
                   <input
+                    type="tel"
+                    inputMode="tel"
                     placeholder="e.g. 0771234567"
                     value={customerPhone}
                     onChange={(e) => setCustomerPhone(e.target.value)}
@@ -256,7 +237,7 @@ export default function CreateCreditBillPage() {
                 </div>
               </div>
               {/* Due Date */}
-              <div className="space-y-1.5">
+              <div className="space-y-1.5 min-w-0">
                 <label className="text-[10px] font-bold text-zinc-400 dark:text-zinc-500 uppercase tracking-widest block">
                   Due Date
                 </label>
@@ -266,12 +247,12 @@ export default function CreateCreditBillPage() {
                     type="date"
                     value={dueDate}
                     onChange={(e) => setDueDate(e.target.value)}
-                    className={`${inputCls} pl-10 pr-4`}
+                    className={`${inputCls} pl-10 pr-2 sm:pr-4 max-w-full`}
                   />
                 </div>
               </div>
               {/* Address – full width */}
-              <div className="sm:col-span-2 space-y-1.5">
+              <div className="sm:col-span-2 space-y-1.5 min-w-0">
                 <label className="text-[10px] font-bold text-zinc-400 dark:text-zinc-500 uppercase tracking-widest block">
                   Address
                 </label>
@@ -325,13 +306,6 @@ export default function CreateCreditBillPage() {
                 <tbody className="divide-y divide-zinc-100 dark:divide-zinc-800/40">
                   {billItems.map((item, idx) => {
                     const selectedProduct = products.find((p) => p._id === item.product);
-                    const search = productSearches[idx] ?? "";
-                    const filtered = products.filter(
-                      (p) =>
-                        search === "" ||
-                        p.name.toLowerCase().includes(search.toLowerCase()) ||
-                        p.sku.toLowerCase().includes(search.toLowerCase())
-                    );
                     return (
                       <tr key={idx} className="hover:bg-zinc-50/20 dark:hover:bg-zinc-900/10">
                         {/* Index */}
@@ -340,110 +314,32 @@ export default function CreateCreditBillPage() {
                         </td>
                         {/* Product Selection */}
                         <td className="py-3 px-2 relative min-w-[200px] overflow-visible">
-                          <div className="relative" ref={(el) => { desktopRefs.current[idx] = el; }}>
-                            <input
-                              type="text"
-                              autoComplete="off"
-                              placeholder={
-                                loadingProducts
-                                  ? "Loading..."
-                                  : selectedProduct
-                                  ? selectedProduct.name
-                                  : "Search product..."
-                              }
-                              value={openDropdownIdx === idx ? search : selectedProduct ? selectedProduct.name : ""}
-                              onFocus={() => {
-                                setOpenDropdownIdx(idx);
-                                setProductSearches((prev) => {
-                                  const n = [...prev];
-                                  n[idx] = "";
-                                  return n;
-                                });
+                          <div className="relative flex items-center">
+                            <button
+                              type="button"
+                              onClick={() => {
+                                setSearchModalOpenForIdx(idx);
+                                setModalSearchQuery("");
                               }}
-                              onChange={(e) => {
-                                setOpenDropdownIdx(idx);
-                                setProductSearches((prev) => {
-                                  const n = [...prev];
-                                  n[idx] = e.target.value;
-                                  return n;
-                                });
-                              }}
-                              className={`w-full px-2.5 py-1.5 text-xs rounded-xl border focus:outline-none transition-all ${
-                                selectedProduct && openDropdownIdx !== idx
+                              className={`w-full text-left px-2.5 py-1.5 text-xs rounded-xl border focus:outline-none transition-all flex items-center justify-between ${
+                                selectedProduct
                                   ? "bg-indigo-50/30 dark:bg-indigo-950/10 border-indigo-400 text-zinc-900 dark:text-zinc-100 font-bold"
-                                  : "bg-zinc-50/50 dark:bg-zinc-900/30 border-zinc-200 dark:border-zinc-800/80 focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500/5"
+                                  : "bg-zinc-50/50 dark:bg-zinc-900/30 border-zinc-200 dark:border-zinc-800/80 hover:border-indigo-400 text-zinc-500"
                               }`}
-                            />
+                            >
+                              <span className="truncate pr-4">
+                                {selectedProduct ? selectedProduct.name : "Select product..."}
+                              </span>
+                              <Search className="w-3.5 h-3.5 text-zinc-400 shrink-0" />
+                            </button>
                             {selectedProduct && (
                               <button
                                 type="button"
-                                onClick={() => {
-                                  updateItem(idx, "product", "");
-                                  setProductSearches((prev) => {
-                                    const n = [...prev];
-                                    n[idx] = "";
-                                    return n;
-                                  });
-                                }}
-                                className="absolute right-2 top-1/2 -translate-y-1/2 text-zinc-400 hover:text-rose-500 p-0.5 rounded-lg cursor-pointer"
+                                onClick={() => updateItem(idx, "product", "")}
+                                className="absolute right-8 text-zinc-400 hover:text-rose-500 p-0.5 rounded-lg cursor-pointer bg-white dark:bg-[#0c0c14] shadow-sm"
                               >
                                 <X className="w-3.5 h-3.5" />
                               </button>
-                            )}
-
-                            {openDropdownIdx === idx && (
-                              <div className="absolute z-50 top-full mt-1 left-0 right-0 bg-white dark:bg-[#0c0c14] border border-zinc-200 dark:border-zinc-800 rounded-2xl shadow-xl shadow-zinc-250/20 dark:shadow-none max-h-48 overflow-y-auto pr-1 min-w-[280px]">
-                                {loadingProducts ? (
-                                  <div className="flex items-center justify-center gap-2 py-3 text-xs text-zinc-400">
-                                    <Loader2 className="w-3.5 h-3.5 animate-spin" /> Loading inventory...
-                                  </div>
-                                ) : filtered.length === 0 ? (
-                                  <p className="py-3 text-xs text-zinc-400 text-center italic">No products found</p>
-                                ) : (
-                                  filtered.map((p) => (
-                                    <button
-                                      key={p._id}
-                                      type="button"
-                                      disabled={p.quantity <= 0}
-                                      onClick={() => {
-                                        updateItem(idx, "product", p._id);
-                                        setProductSearches((prev) => {
-                                          const n = [...prev];
-                                          n[idx] = "";
-                                          return n;
-                                        });
-                                        setOpenDropdownIdx(null);
-                                      }}
-                                      className={`w-full flex items-center justify-between px-3 py-2 text-left text-[11px] transition-colors border-b border-zinc-50 dark:border-zinc-900 last:border-0 cursor-pointer ${
-                                        item.product === p._id
-                                          ? "bg-indigo-50/80 dark:bg-indigo-950/30 text-indigo-750 dark:text-indigo-300 font-semibold"
-                                          : p.quantity <= 0
-                                          ? "opacity-35 cursor-not-allowed text-zinc-400 dark:text-zinc-550"
-                                          : "hover:bg-zinc-50/80 dark:hover:bg-zinc-900/60 text-zinc-700 dark:text-zinc-300"
-                                      }`}
-                                    >
-                                      <div className="min-w-0 pr-2">
-                                        <p className="font-bold truncate text-zinc-850 dark:text-zinc-200">{p.name}</p>
-                                        <p className="text-[9px] font-mono text-zinc-400 mt-0.5">{p.sku}</p>
-                                      </div>
-                                      <div className="text-right shrink-0">
-                                        <p
-                                          className={`font-bold text-[10px] tabular-nums ${
-                                            p.quantity <= 0
-                                              ? "text-rose-500"
-                                              : p.quantity < 5
-                                              ? "text-amber-500"
-                                              : "text-emerald-600 dark:text-emerald-450"
-                                          }`}
-                                        >
-                                          {p.quantity} left
-                                        </p>
-                                        <p className="text-[9px] text-zinc-400 mt-0.5">Rs.{p.unitPrice.toFixed(2)}</p>
-                                      </div>
-                                    </button>
-                                  ))
-                                )}
-                              </div>
                             )}
                           </div>
                           {selectedProduct && item.quantity > selectedProduct.quantity && (
@@ -456,6 +352,7 @@ export default function CreateCreditBillPage() {
                         <td className="py-3 px-2">
                           <input
                             type="number"
+                            inputMode="numeric"
                             min={1}
                             max={item.maxQty || undefined}
                             value={item.quantity}
@@ -468,6 +365,7 @@ export default function CreateCreditBillPage() {
                         <td className="py-3 px-2">
                           <input
                             type="number"
+                            inputMode="decimal"
                             step="0.01"
                             value={item.unitPrice}
                             onChange={(e) => updateItem(idx, "unitPrice", parseFloat(e.target.value) || 0)}
@@ -502,13 +400,6 @@ export default function CreateCreditBillPage() {
             <div className="block md:hidden divide-y divide-zinc-150/40 dark:divide-zinc-800/30">
               {billItems.map((item, idx) => {
                 const selectedProduct = products.find((p) => p._id === item.product);
-                const search = productSearches[idx] ?? "";
-                const filtered = products.filter(
-                  (p) =>
-                    search === "" ||
-                    p.name.toLowerCase().includes(search.toLowerCase()) ||
-                    p.sku.toLowerCase().includes(search.toLowerCase())
-                );
                 return (
                   <div key={idx} className="p-3 space-y-2.5 bg-white dark:bg-[#0c0c14]">
                     {/* Item label + remove */}
@@ -528,101 +419,32 @@ export default function CreateCreditBillPage() {
                     </div>
 
                     {/* Product Search */}
-                    <div className="relative" ref={(el) => { mobileRefs.current[idx] = el; }}>
-                      <Search className="w-3.5 h-3.5 absolute left-3 top-1/2 -translate-y-1/2 text-zinc-400 pointer-events-none z-10" />
-                      <input
-                        type="text"
-                        autoComplete="off"
-                        placeholder={
-                          loadingProducts
-                            ? "Loading..."
-                            : selectedProduct
-                            ? selectedProduct.name
-                            : "Search product..."
-                        }
-                        value={openDropdownIdx === idx ? search : selectedProduct ? selectedProduct.name : ""}
-                        onFocus={() => {
-                          setOpenDropdownIdx(idx);
-                          setProductSearches((prev) => {
-                            const n = [...prev];
-                            n[idx] = "";
-                            return n;
-                          });
+                    <div className="relative">
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setSearchModalOpenForIdx(idx);
+                          setModalSearchQuery("");
                         }}
-                        onChange={(e) => {
-                          setOpenDropdownIdx(idx);
-                          setProductSearches((prev) => {
-                            const n = [...prev];
-                            n[idx] = e.target.value;
-                            return n;
-                          });
-                        }}
-                        className={`w-full pl-9 pr-8 py-2 text-xs rounded-xl border focus:outline-none transition-all ${
-                          selectedProduct && openDropdownIdx !== idx
+                        className={`w-full text-left pl-9 pr-8 py-2 text-xs rounded-xl border focus:outline-none transition-all flex items-center justify-between ${
+                          selectedProduct
                             ? "bg-indigo-50/30 dark:bg-indigo-950/10 border-indigo-400 text-zinc-900 dark:text-zinc-100 font-bold"
-                            : "bg-zinc-50/50 dark:bg-zinc-900/30 border-zinc-200 dark:border-zinc-800/80 focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500/5"
+                            : "bg-zinc-50/50 dark:bg-zinc-900/30 border-zinc-200 dark:border-zinc-800/80 hover:border-indigo-400 text-zinc-500"
                         }`}
-                      />
+                      >
+                        <Search className="w-3.5 h-3.5 absolute left-3 top-1/2 -translate-y-1/2 text-zinc-400 pointer-events-none z-10" />
+                        <span className="truncate">
+                          {selectedProduct ? selectedProduct.name : "Select product..."}
+                        </span>
+                      </button>
                       {selectedProduct && (
                         <button
                           type="button"
-                          onClick={() => {
-                            updateItem(idx, "product", "");
-                            setProductSearches((prev) => {
-                              const n = [...prev];
-                              n[idx] = "";
-                              return n;
-                            });
-                          }}
+                          onClick={() => updateItem(idx, "product", "")}
                           className="absolute right-2.5 top-1/2 -translate-y-1/2 text-zinc-400 hover:text-rose-500 transition-colors p-0.5 rounded-lg"
                         >
                           <X className="w-3.5 h-3.5" />
                         </button>
-                      )}
-
-                      {openDropdownIdx === idx && (
-                        <div className="absolute z-50 top-full mt-1 left-0 right-0 bg-white dark:bg-[#0c0c14] border border-zinc-200 dark:border-zinc-800 rounded-2xl shadow-xl max-h-40 overflow-y-auto pr-1">
-                          {loadingProducts ? (
-                            <div className="flex items-center justify-center gap-2 py-3 text-xs text-zinc-400">
-                              <Loader2 className="w-3 h-3 animate-spin" /> Loading...
-                            </div>
-                          ) : filtered.length === 0 ? (
-                            <p className="py-3 text-xs text-zinc-400 text-center italic">No products found</p>
-                          ) : (
-                            filtered.map((p) => (
-                              <button
-                                key={p._id}
-                                type="button"
-                                disabled={p.quantity <= 0}
-                                onClick={() => {
-                                  updateItem(idx, "product", p._id);
-                                  setProductSearches((prev) => {
-                                    const n = [...prev];
-                                    n[idx] = "";
-                                    return n;
-                                  });
-                                  setOpenDropdownIdx(null);
-                                }}
-                                className={`w-full flex items-center justify-between px-3 py-2 text-left text-[11px] transition-colors border-b border-zinc-50 dark:border-zinc-900 last:border-0 cursor-pointer ${
-                                  item.product === p._id
-                                    ? "bg-indigo-50/80 dark:bg-indigo-950/30 text-indigo-750 dark:text-indigo-300 font-semibold"
-                                    : p.quantity <= 0
-                                    ? "opacity-35 cursor-not-allowed text-zinc-400 dark:text-zinc-550"
-                                    : "hover:bg-zinc-50/80 dark:hover:bg-zinc-900/60 text-zinc-700 dark:text-zinc-300"
-                                }`}
-                              >
-                                <div className="min-w-0 pr-2">
-                                  <p className="font-bold truncate text-zinc-850 dark:text-zinc-200">{p.name}</p>
-                                  <p className="text-[9px] font-mono text-zinc-400 mt-0.5">{p.sku}</p>
-                                </div>
-                                <div className="text-right shrink-0">
-                                  <p className="font-bold text-[10px] text-emerald-600 dark:text-emerald-450">{p.quantity} left</p>
-                                  <p className="text-[9px] text-zinc-400 mt-0.5">Rs.{p.unitPrice.toFixed(2)}</p>
-                                </div>
-                              </button>
-                            ))
-                          )}
-                        </div>
                       )}
                     </div>
                     {selectedProduct && item.quantity > selectedProduct.quantity && (
@@ -636,6 +458,7 @@ export default function CreateCreditBillPage() {
                       <div className="w-16 shrink-0">
                         <input
                           type="number"
+                          inputMode="numeric"
                           min={1}
                           max={item.maxQty || undefined}
                           value={item.quantity}
@@ -648,6 +471,7 @@ export default function CreateCreditBillPage() {
                       <div className="flex-1 min-w-0">
                         <input
                           type="number"
+                          inputMode="decimal"
                           step="0.01"
                           value={item.unitPrice}
                           onChange={(e) => updateItem(idx, "unitPrice", parseFloat(e.target.value) || 0)}
@@ -726,20 +550,6 @@ export default function CreateCreditBillPage() {
               </div>
 
               <div className="border-t border-dashed border-zinc-200 dark:border-zinc-800 pt-3.5 space-y-2">
-                {/* Discount inline */}
-                <div className="flex items-center justify-between gap-3">
-                  <label className="text-[10px] font-bold text-zinc-400 dark:text-zinc-400 uppercase tracking-widest whitespace-nowrap">
-                    Discount Amt (Rs.)
-                  </label>
-                  <input
-                    type="number"
-                    min={0}
-                    value={discount}
-                    onChange={(e) => setDiscount(e.target.value)}
-                    className="w-28 px-3 py-1.5 text-xs text-right bg-zinc-50/50 hover:bg-zinc-50/80 focus:bg-white dark:bg-zinc-900/30 dark:focus:bg-zinc-900/80 border border-zinc-200 dark:border-zinc-800 rounded-xl focus:outline-none focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500/5 transition-all text-zinc-800 dark:text-zinc-100 font-semibold"
-                  />
-                </div>
-
                 {/* Amount Paid inline */}
                 <div className="flex items-center justify-between gap-3">
                   <label className="text-[10px] font-bold text-zinc-400 dark:text-zinc-400 uppercase tracking-widest whitespace-nowrap">
@@ -747,6 +557,7 @@ export default function CreateCreditBillPage() {
                   </label>
                   <input
                     type="number"
+                    inputMode="decimal"
                     min={0}
                     max={grandTotal}
                     value={amountPaid}
@@ -759,12 +570,6 @@ export default function CreateCreditBillPage() {
                   <span className="font-medium">Subtotal</span>
                   <span className="font-mono font-semibold">Rs. {subtotal.toFixed(2)}</span>
                 </div>
-                {discountAmt > 0 && (
-                  <div className="flex justify-between text-xs text-rose-500 font-bold">
-                    <span>Discount Applied</span>
-                    <span className="font-mono">− Rs. {discountAmt.toFixed(2)}</span>
-                  </div>
-                )}
 
                 <div className="flex justify-between items-center pt-3 border-t border-zinc-150 dark:border-zinc-800">
                   <span className="text-xs font-extrabold text-zinc-800 dark:text-zinc-200 uppercase tracking-wider">Grand Total</span>
@@ -828,6 +633,82 @@ export default function CreateCreditBillPage() {
           {submitting ? "Issuing..." : "Issue Bill"}
         </button>
       </div>
+      {/* Product Search Modal */}
+      <Modal
+        isOpen={searchModalOpenForIdx !== null}
+        onClose={() => setSearchModalOpenForIdx(null)}
+        title="Select Product"
+      >
+        <div className="space-y-4">
+          <div className="relative">
+            <Search className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-zinc-400 pointer-events-none" />
+            <input
+              type="text"
+              placeholder="Search by name or SKU..."
+              value={modalSearchQuery}
+              onChange={(e) => setModalSearchQuery(e.target.value)}
+              className="w-full pl-9 pr-3 py-2.5 text-sm bg-zinc-50/50 dark:bg-zinc-900/30 border border-zinc-200 dark:border-zinc-800 rounded-xl focus:outline-none focus:border-indigo-500 focus:ring-4 focus:ring-indigo-500/5 transition-all"
+              autoFocus
+            />
+          </div>
+          <div className="max-h-[300px] overflow-y-auto border border-zinc-100 dark:border-zinc-800/80 rounded-xl divide-y divide-zinc-100 dark:divide-zinc-800/60 bg-white dark:bg-[#0c0c14]">
+            {loadingProducts ? (
+              <div className="p-8 flex items-center justify-center gap-2 text-zinc-400">
+                <Loader2 className="w-4 h-4 animate-spin" /> Loading...
+              </div>
+            ) : (() => {
+              const q = modalSearchQuery.toLowerCase();
+              const filtered = products.filter(
+                (p) => p.name.toLowerCase().includes(q) || p.sku.toLowerCase().includes(q)
+              );
+              if (filtered.length === 0) {
+                return <div className="p-8 text-center text-zinc-400">No products found.</div>;
+              }
+              return filtered.map((p) => (
+                <button
+                  key={p._id}
+                  type="button"
+                  disabled={p.quantity <= 0}
+                  onClick={() => {
+                    if (searchModalOpenForIdx !== null) {
+                      updateItem(searchModalOpenForIdx, "product", p._id);
+                      setSearchModalOpenForIdx(null);
+                    }
+                  }}
+                  className={`w-full p-3 flex items-center gap-3 text-left transition-colors cursor-pointer ${
+                    p.quantity <= 0
+                      ? "opacity-40 cursor-not-allowed"
+                      : "hover:bg-zinc-50/70 dark:hover:bg-zinc-900/40"
+                  }`}
+                >
+                  <div className="min-w-0 flex-1">
+                    <p className="font-semibold text-xs text-zinc-800 dark:text-zinc-100 truncate">
+                      {p.name}
+                    </p>
+                    <p className="font-mono text-[9px] text-zinc-400 dark:text-zinc-500 truncate mt-0.5">
+                      {p.sku}
+                    </p>
+                  </div>
+                  <div className="text-right flex-shrink-0">
+                    <p className="text-[9px] text-zinc-400 dark:text-zinc-500 uppercase font-semibold">Stock</p>
+                    <p className={`font-bold text-xs ${p.quantity === 0 ? "text-rose-500" : "text-emerald-600 dark:text-emerald-450"}`}>
+                      {p.quantity} left
+                    </p>
+                    <p className="text-[9px] text-zinc-400 mt-0.5 tabular-nums">Rs.{p.unitPrice.toFixed(2)}</p>
+                  </div>
+                </button>
+              ));
+            })()}
+          </div>
+          <button
+            type="button"
+            onClick={() => setSearchModalOpenForIdx(null)}
+            className="w-full py-2.5 text-sm font-medium text-zinc-600 dark:text-zinc-400 bg-zinc-50 dark:bg-zinc-900/50 border border-zinc-200 dark:border-zinc-800 rounded-xl hover:bg-zinc-100 dark:hover:bg-zinc-800/60 transition-all cursor-pointer text-center active:scale-[0.98]"
+          >
+            Cancel
+          </button>
+        </div>
+      </Modal>
     </div>
   );
 }

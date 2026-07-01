@@ -115,7 +115,9 @@ export default function ProductsPage() {
                   <th className="px-3 sm:px-6 py-3 sm:py-4.5 font-semibold hidden sm:table-cell">SKU</th>
                   <th className="px-3 sm:px-6 py-3 sm:py-4.5 font-semibold hidden md:table-cell">Category</th>
                   <th className="px-3 sm:px-6 py-3 sm:py-4.5 font-semibold text-right hidden sm:table-cell">Price</th>
-                  <th className="px-3 sm:px-6 py-3 sm:py-4.5 font-semibold text-right">Quantity</th>
+                  <th className="px-3 sm:px-6 py-3 sm:py-4.5 font-semibold text-right">Main Stock</th>
+                  <th className="px-3 sm:px-6 py-3 sm:py-4.5 font-semibold text-right">Returned</th>
+                  <th className="px-3 sm:px-6 py-3 sm:py-4.5 font-semibold text-right hidden lg:table-cell">Free Issued</th>
                   <th className="px-3 sm:px-6 py-3 sm:py-4.5 font-semibold text-center hidden md:table-cell">Status</th>
                   <th className="px-3 sm:px-6 py-3 sm:py-4.5 font-semibold text-right">Actions</th>
                 </tr>
@@ -140,6 +142,8 @@ export default function ProductsPage() {
                     <td className="px-3 sm:px-6 py-3 sm:py-4 text-zinc-500 dark:text-zinc-400 hidden md:table-cell">{product.category?.name || '-'}</td>
                     <td className="px-3 sm:px-6 py-3 sm:py-4 text-right text-zinc-700 dark:text-zinc-300 font-medium hidden sm:table-cell">{formatCurrency(product.unitPrice)}</td>
                     <td className="px-3 sm:px-6 py-3 sm:py-4 text-right font-bold text-zinc-800 dark:text-zinc-200">{product.quantity}</td>
+                    <td className="px-3 sm:px-6 py-3 sm:py-4 text-right font-bold text-orange-600 dark:text-orange-400">{product.returnedQuantity || 0}</td>
+                    <td className="px-3 sm:px-6 py-3 sm:py-4 text-right font-bold text-indigo-600 dark:text-indigo-400 hidden lg:table-cell">{product.freeIssuedQuantity || 0}</td>
                     <td className="px-3 sm:px-6 py-3 sm:py-4 text-center hidden md:table-cell">
                       {product.quantity === 0 ? (
                         <Badge variant="danger">Out of Stock</Badge>
