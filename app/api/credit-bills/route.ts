@@ -8,14 +8,17 @@ import Transaction from '@/models/Transaction';
 import User from '@/models/User';
 
 // ── Helper: generate unique bill number ──────────────────────────────────────
-async function generateBillNumber(): Promise<string> {
-  const today = new Date();
+async function generateBillNumber(sku: string): Promise<string> {
+  // Get current date string in Colombo timezone
+  const nowStr = new Date().toLocaleString('en-US', { timeZone: 'Asia/Colombo' });
+  const today = new Date(nowStr);
+  
   const dateStr =
     today.getFullYear().toString() +
     String(today.getMonth() + 1).padStart(2, '0') +
     String(today.getDate()).padStart(2, '0');
 
-  const prefix = `CB-${dateStr}-`;
+  const prefix = `CB-${dateStr}-${sku}-`;
   const last = await CreditBill.findOne(
     { billNumber: { $regex: `^${prefix}` } },
     { billNumber: 1 },
@@ -146,7 +149,8 @@ export async function POST(req: Request) {
       return NextResponse.json({ success: false, error: 'Amount paid cannot exceed the grand total' }, { status: 400 });
     }
 
-    const billNumber = await generateBillNumber();
+    const mainSku = enrichedItems.length > 0 ? enrichedItems[0].sku : 'UNKNOWN';
+    const billNumber = await generateBillNumber(mainSku);
     const userId = (session.user as { id?: string; email?: string }).id;
 
     // Deduct stock and create transaction records atomically

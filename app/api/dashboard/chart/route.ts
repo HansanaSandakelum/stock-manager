@@ -11,12 +11,17 @@ export async function GET() {
 
     await dbConnect();
 
-    const sevenDaysAgo = new Date();
-    sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7);
-    sevenDaysAgo.setHours(0, 0, 0, 0);
+    // Calculate exactly 7 days ago in Colombo midnight, converted to UTC
+    const nowStr = new Date().toLocaleString('en-US', { timeZone: 'Asia/Colombo' });
+    const colomboNow = new Date(nowStr);
+    colomboNow.setDate(colomboNow.getDate() - 7);
+    colomboNow.setHours(0, 0, 0, 0);
+    
+    const colomboOffsetMs = 5.5 * 60 * 60 * 1000;
+    const sevenDaysAgoUTC = new Date(colomboNow.getTime() - colomboOffsetMs);
 
     const transactions = await Transaction.find({
-      date: { $gte: sevenDaysAgo }
+      date: { $gte: sevenDaysAgoUTC }
     });
 
     // Aggregate by day
@@ -26,12 +31,12 @@ export async function GET() {
     for (let i = 6; i >= 0; i--) {
       const d = new Date();
       d.setDate(d.getDate() - i);
-      const dateStr = d.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+      const dateStr = d.toLocaleDateString('en-US', { timeZone: 'Asia/Colombo', month: 'short', day: 'numeric' });
       chartDataMap[dateStr] = { date: dateStr, in: 0, out: 0 };
     }
 
     transactions.forEach(t => {
-      const dateStr = new Date(t.date).toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+      const dateStr = new Date(t.date).toLocaleDateString('en-US', { timeZone: 'Asia/Colombo', month: 'short', day: 'numeric' });
       if (chartDataMap[dateStr]) {
         if (t.type === 'in') {
           chartDataMap[dateStr].in += t.quantity;
