@@ -36,6 +36,8 @@ interface Product {
   name: string;
   sku: string;
   quantity: number;
+  returnedQuantity: number;
+  freeIssuedQuantity: number;
   unitPrice: number;
   lowStockThreshold: number;
   category?: { name: string };
@@ -288,19 +290,32 @@ export default function StockHandlingPage() {
       const data = await res.json();
       if (!res.ok) throw new Error(data.error || "Failed");
 
-      const delta = dialog.type === "in" ? quantity : -quantity;
-      const newQty = Math.max(0, dialog.product.quantity + delta);
-
-      toast(
-        `${dialog.product.name}: ${delta > 0 ? "+" : ""}${delta} → ${newQty} units`,
-        "success",
-      );
-
-      setProducts((ps) =>
-        ps.map((p) =>
-          p._id === dialog.product!._id ? { ...p, quantity: newQty } : p,
-        ),
-      );
+      if (actualType === "return") {
+        const newReturnedQty = (dialog.product.returnedQuantity || 0) + quantity;
+        toast(
+          `${dialog.product.name}: +${quantity} returned → ${newReturnedQty} total returned`,
+          "success",
+        );
+        setProducts((ps) =>
+          ps.map((p) =>
+            p._id === dialog.product!._id
+              ? { ...p, returnedQuantity: newReturnedQty }
+              : p,
+          ),
+        );
+      } else {
+        const delta = dialog.type === "in" ? quantity : -quantity;
+        const newQty = Math.max(0, dialog.product.quantity + delta);
+        toast(
+          `${dialog.product.name}: ${delta > 0 ? "+" : ""}${delta} → ${newQty} units`,
+          "success",
+        );
+        setProducts((ps) =>
+          ps.map((p) =>
+            p._id === dialog.product!._id ? { ...p, quantity: newQty } : p,
+          ),
+        );
+      }
       setDialog((prev) => ({ ...prev, open: false, saving: false }));
     } catch (e: any) {
       toast(e.message, "error");
@@ -1180,42 +1195,7 @@ export default function StockHandlingPage() {
                 )}
             </div>
 
-            {/* Is Return Toggle */}
-            {dialog.type === "in" && (
-              <div className="flex flex-col gap-2.5 bg-zinc-50/50 dark:bg-zinc-900/20 border border-zinc-200/60 dark:border-zinc-800/40 rounded-xl p-3.5">
-                <p className="text-[10px] font-semibold text-zinc-500 dark:text-zinc-400 uppercase tracking-wider">Stock In Type</p>
-                <div className="flex rounded-xl overflow-hidden border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-[#0c0c14] p-0.5 gap-0.5">
-                  <button
-                    type="button"
-                    onClick={() => setDialog(prev => ({ ...prev, isReturn: false }))}
-                    disabled={role === "deliver"}
-                    className={`flex-1 px-3 py-2.5 rounded-lg text-[11px] font-semibold transition-all flex items-center justify-center gap-1.5 ${
-                      !dialog.isReturn
-                        ? "bg-emerald-600 text-white shadow-sm"
-                        : "text-zinc-500 dark:text-zinc-400 hover:bg-zinc-50 dark:hover:bg-zinc-800/50 cursor-pointer"
-                    } ${role === "deliver" ? "opacity-40 cursor-not-allowed" : ""}`}
-                  >
-                    Regular Restock
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => setDialog(prev => ({ ...prev, isReturn: true }))}
-                    className={`flex-1 px-3 py-2.5 rounded-lg text-[11px] font-semibold transition-all flex items-center justify-center gap-1.5 ${
-                      dialog.isReturn
-                        ? "bg-amber-500 text-white shadow-sm"
-                        : "text-zinc-500 dark:text-zinc-400 hover:bg-zinc-50 dark:hover:bg-zinc-800/50 cursor-pointer"
-                    }`}
-                  >
-                    Product Return
-                  </button>
-                </div>
-                {role === "deliver" && (
-                  <p className="text-[10px] text-amber-600/90 dark:text-amber-400/90 leading-tight">
-                    * Delivery personnel can only process product returns for Stock In operations.
-                  </p>
-                )}
-              </div>
-            )}
+
 
             {/* Date */}
             <div className="space-y-1.5 min-w-0">
@@ -1255,7 +1235,7 @@ export default function StockHandlingPage() {
                     : "e.g. Sold to customer, Damaged goods, Internal use..."
                 }
                 rows={3}
-                className="w-full px-3.5 py-2.5 bg-zinc-50/30 hover:bg-zinc-50/70 focus:bg-white dark:bg-zinc-900/30 dark:hover:bg-zinc-900/60 dark:focus:bg-zinc-900/90 border border-zinc-200 dark:border-zinc-800 rounded-xl text-sm transition-all focus:outline-none focus:border-indigo-500 focus:ring-4 focus:ring-indigo-500/5 resize-none"
+                className="w-full px-3.5 py-2.5 bg-zinc-50/30 hover:bg-zinc-50/70 focus:bg-white dark:bg-zinc-900/30 dark:hover:bg-zinc-900/60 dark:focus:bg-zinc-900/90 border border-zinc-200 dark:border-zinc-800 rounded-xl text-sm text-zinc-900 dark:text-zinc-100 placeholder:text-zinc-400 dark:placeholder:text-zinc-500 transition-all focus:outline-none focus:border-indigo-500 focus:ring-4 focus:ring-indigo-500/5 resize-none"
               />
             </div>
 

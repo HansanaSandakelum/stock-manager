@@ -24,4 +24,8 @@ const ReturnSchema: Schema = new Schema({
   updatedAt: { type: Date, default: Date.now },
 });
 
+ReturnSchema.index({ status: 1 });
+ReturnSchema.index({ product: 1 });
+ReturnSchema.index({ date: -1 });
+
 export default mongoose.models.Return || mongoose.model<IReturn>('Return', ReturnSchema);

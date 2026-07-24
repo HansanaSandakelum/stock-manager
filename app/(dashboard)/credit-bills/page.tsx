@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useRef } from "react";
 import { useSession } from "next-auth/react";
 import { useRouter } from "next/navigation";
 import {
@@ -62,10 +62,18 @@ interface CreditBill {
   status: "Pending" | "Partially Paid" | "Paid" | "Overdue";
   dueDate?: string;
   note?: string;
+  isHistorical?: boolean;
   paymentHistory: PaymentRecord[];
   createdBy?: { name: string; email: string };
   createdAt: string;
   updatedAt: string;
+}
+
+interface OldBillItem {
+  productName: string;
+  sku: string;
+  quantity: string;
+  unitPrice: string;
 }
 
 const PAGE_SIZE = 10;
@@ -95,6 +103,7 @@ export default function CreditBillsPage() {
   // Modal visibility states
   const [isDetailOpen, setIsDetailOpen] = useState(false);
   const [isPaymentOpen, setIsPaymentOpen] = useState(false);
+  const [isImportOpen, setIsImportOpen] = useState(false);
 
   // Selected item states
   const [selectedBill, setSelectedBill] = useState<CreditBill | null>(null);
@@ -103,6 +112,23 @@ export default function CreditBillsPage() {
   const [paymentAmount, setPaymentAmount] = useState("");
   const [paymentNote, setPaymentNote] = useState("");
   const [submittingPayment, setSubmittingPayment] = useState(false);
+
+  // Import Old Bill form states
+  const [importForm, setImportForm] = useState({
+    customerName: "",
+    customerPhone: "",
+    customerAddress: "",
+    billDate: new Date().toISOString().slice(0, 10),
+    dueDate: "",
+    amountPaid: "",
+    discount: "",
+    note: "",
+  });
+  const [importItems, setImportItems] = useState<OldBillItem[]>([
+    { productName: "", sku: "", quantity: "", unitPrice: "" },
+  ]);
+  const [submittingImport, setSubmittingImport] = useState(false);
+  const csvFileRef = useRef<HTMLInputElement>(null);
 
   // Fetch Bills List
   const fetchBills = useCallback(
@@ -227,6 +253,217 @@ export default function CreditBillsPage() {
     }
   };
 
+  // Import Old Bill Submit
+  const handleImportSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!importForm.customerName.trim()) {
+      toast("Customer name is required", "error");
+      return;
+    }
+    const validItems = importItems.filter(
+      (it) => it.productName.trim() && Number(it.quantity) > 0 && Number(it.unitPrice) >= 0,
+    );
+    if (validItems.length === 0) {
+      toast("Add at least one valid item", "error");
+      return;
+    }
+    setSubmittingImport(true);
+    try {
+      const res = await fetch("/api/credit-bills", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          customerName: importForm.customerName.trim(),
+          customerPhone: importForm.customerPhone.trim() || undefined,
+          customerAddress: importForm.customerAddress.trim() || undefined,
+          billDate: importForm.billDate || undefined,
+          dueDate: importForm.dueDate || undefined,
+          amountPaid: Number(importForm.amountPaid) || 0,
+          discount: Number(importForm.discount) || 0,
+          note: importForm.note.trim() || undefined,
+          isHistorical: true,
+          items: validItems.map((it) => ({
+            productName: it.productName.trim(),
+            sku: it.sku.trim() || "N/A",
+            quantity: Number(it.quantity),
+            unitPrice: Number(it.unitPrice),
+          })),
+        }),
+      });
+      const data = await res.json();
+      if (!data.success) throw new Error(data.error || "Failed to import bill");
+      toast("Old credit bill imported successfully", "success");
+      setIsImportOpen(false);
+      setImportForm({
+        customerName: "",
+        customerPhone: "",
+        customerAddress: "",
+        billDate: new Date().toISOString().slice(0, 10),
+        dueDate: "",
+        amountPaid: "",
+        discount: "",
+        note: "",
+      });
+      setImportItems([{ productName: "", sku: "", quantity: "", unitPrice: "" }]);
+      fetchBills(true);
+    } catch (err: any) {
+      toast(err.message, "error");
+    } finally {
+      setSubmittingImport(false);
+    }
+  };
+
+  // ── Parse CSV file and populate import items ──────────────────────────────
+  const parseCsv = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    if (!file.name.endsWith(".csv")) {
+      toast("Please upload a .csv file", "error");
+      return;
+    }
+    const reader = new FileReader();
+    reader.onload = (evt) => {
+      try {
+        const text = (evt.target?.result as string) || "";
+        const lines = text
+          .split(/\r?\n/)
+          .map((l) => l.trim())
+          .filter(Boolean);
+        if (lines.length < 2) {
+          toast("CSV must have a header row and at least one data row", "error");
+          return;
+        }
+
+        // Normalise a header cell to a key
+        const normalise = (s: string) =>
+          s.toLowerCase().replace(/[^a-z]/g, "");
+
+        // Parse a CSV line (handles quoted commas)
+        const parseLine = (line: string): string[] => {
+          const result: string[] = [];
+          let cur = "";
+          let inQuotes = false;
+          for (let i = 0; i < line.length; i++) {
+            const ch = line[i];
+            if (ch === '"') { inQuotes = !inQuotes; }
+            else if (ch === "," && !inQuotes) { result.push(cur.trim()); cur = ""; }
+            else { cur += ch; }
+          }
+          result.push(cur.trim());
+          return result;
+        };
+
+        const headers = parseLine(lines[0]).map(normalise);
+
+        // Map known customer-info header names → form fields
+        const custMap: Record<string, keyof typeof importForm> = {
+          customername:   "customerName",
+          customer:       "customerName",
+          name:           "customerName",
+          phone:          "customerPhone",
+          customerphone:  "customerPhone",
+          address:        "customerAddress",
+          customeraddress:"customerAddress",
+          billdate:       "billDate",
+          date:           "billDate",
+          duedate:        "dueDate",
+          amountpaid:     "amountPaid",
+          paid:           "amountPaid",
+          discount:       "discount",
+          note:           "note",
+        };
+
+        // Map known item column names
+        const itemMap: Record<string, keyof OldBillItem> = {
+          productname:  "productName",
+          product:      "productName",
+          item:         "productName",
+          description:  "productName",
+          sku:          "sku",
+          code:         "sku",
+          qty:          "quantity",
+          quantity:     "quantity",
+          unitprice:    "unitPrice",
+          price:        "unitPrice",
+          rate:         "unitPrice",
+        };
+
+        // Decide if this looks like an item CSV or a mixed CSV
+        const hasItemCols = headers.some((h) => itemMap[h] && itemMap[h] === "productName");
+        if (!hasItemCols) {
+          toast("CSV must have a 'Product Name' (or similar) column", "error");
+          return;
+        }
+
+        const newItems: OldBillItem[] = [];
+        const newFormUpdates: Partial<typeof importForm> = {};
+
+        for (let i = 1; i < lines.length; i++) {
+          const cells = parseLine(lines[i]);
+          const row: Record<string, string> = {};
+          headers.forEach((h, idx) => { row[h] = cells[idx] ?? ""; });
+
+          // Pick up any customer-info columns from the first data row
+          if (i === 1) {
+            headers.forEach((h) => {
+              const field = custMap[h];
+              if (field && row[h]) {
+                (newFormUpdates as any)[field] = row[h];
+              }
+            });
+          }
+
+          // Build item from item columns
+          const item: OldBillItem = { productName: "", sku: "", quantity: "", unitPrice: "" };
+          headers.forEach((h) => {
+            const field = itemMap[h];
+            if (field) (item as any)[field] = row[h] ?? "";
+          });
+
+          if (item.productName) newItems.push(item);
+        }
+
+        if (newItems.length === 0) {
+          toast("No valid item rows found in CSV", "error");
+          return;
+        }
+
+        if (Object.keys(newFormUpdates).length > 0) {
+          setImportForm((f) => ({ ...f, ...newFormUpdates }));
+        }
+        setImportItems(newItems);
+        toast(`Loaded ${newItems.length} item${newItems.length > 1 ? "s" : ""} from CSV`, "success");
+      } catch {
+        toast("Failed to parse CSV — check the format and try again", "error");
+      } finally {
+        // Reset file input so the same file can be re-uploaded
+        if (csvFileRef.current) csvFileRef.current.value = "";
+      }
+    };
+    reader.readAsText(file);
+  };
+
+  // ── Download sample CSV ───────────────────────────────────────────────────
+  const downloadSampleCsv = () => {
+    const sample = [
+      // Header — all supported columns
+      "Product Name,SKU,Quantity,Unit Price,Customer Name,Phone,Address,Bill Date,Due Date,Amount Paid,Discount,Note",
+      // First row: fill BOTH customer info AND first item
+      // (Customer info is only read from the first data row)
+      "Rice 5kg,RICE-001,10,250.00,John Silva,0711234567,\"123 Main St, Colombo\",2024-03-15,2024-04-15,500.00,50.00,Before system migration",
+      // Subsequent rows: only item columns matter (customer info ignored)
+      "Sugar 1kg,SUG-001,5,180.00,,,,,,,,",
+      "Coconut Oil 1L,OIL-002,3,420.00,,,,,,,,",
+    ].join("\n");
+    const blob = new Blob([sample], { type: "text/csv" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = "sample_credit_bill_items.csv";
+    a.click();
+    URL.revokeObjectURL(url);
+  };
+
   // Helper status badge mapper
   const getStatusVariant = (status: string) => {
     switch (status) {
@@ -303,6 +540,13 @@ export default function CreditBillsPage() {
               className={`w-3.5 h-3.5 ${refreshing ? "animate-spin" : ""}`}
             />
             Refresh
+          </button>
+          <button
+            onClick={() => setIsImportOpen(true)}
+            className="flex-1 md:flex-initial flex items-center justify-center gap-2 px-4 py-2 text-xs font-bold text-amber-700 dark:text-amber-400 bg-amber-50 dark:bg-amber-950/30 border border-amber-200 dark:border-amber-800/50 hover:bg-amber-100 dark:hover:bg-amber-950/60 rounded-xl transition-all active:scale-[0.98] cursor-pointer"
+          >
+            <Plus className="w-4 h-4" />
+            Import Old Bill
           </button>
           <button
             onClick={() => router.push("/credit-bills/new")}
@@ -481,7 +725,14 @@ export default function CreditBillsPage() {
                         className="transition-colors hover:bg-zinc-50/30 dark:hover:bg-zinc-900/10"
                       >
                         <td className="px-4 py-3 font-mono text-zinc-800 dark:text-zinc-200">
-                          {bill.billNumber}
+                          <div className="flex flex-col gap-0.5">
+                            <span>{bill.billNumber}</span>
+                            {bill.isHistorical && (
+                              <span className="inline-block text-[9px] font-bold uppercase tracking-wider text-amber-600 dark:text-amber-400 bg-amber-50 dark:bg-amber-950/40 border border-amber-200 dark:border-amber-800/40 px-1.5 py-0.5 rounded-md w-fit">
+                                Historical
+                              </span>
+                            )}
+                          </div>
                         </td>
                         <td className="px-4 py-3">
                           <div className="min-w-0">
@@ -580,9 +831,16 @@ export default function CreditBillsPage() {
               >
                 {/* Card Header: Invoice number and status */}
                 <div className="flex justify-between items-center">
-                  <span className="font-mono text-xs font-bold text-zinc-800 dark:text-zinc-200">
-                    {bill.billNumber}
-                  </span>
+                  <div className="flex flex-col gap-0.5">
+                    <span className="font-mono text-xs font-bold text-zinc-800 dark:text-zinc-200">
+                      {bill.billNumber}
+                    </span>
+                    {bill.isHistorical && (
+                      <span className="text-[9px] font-bold uppercase tracking-wider text-amber-600 dark:text-amber-400 bg-amber-50 dark:bg-amber-950/40 border border-amber-200 dark:border-amber-800/40 px-1.5 py-0.5 rounded-md w-fit">
+                        Historical
+                      </span>
+                    )}
+                  </div>
                   <Badge variant={getStatusVariant(bill.status)}>
                     {bill.status}
                   </Badge>
@@ -661,7 +919,7 @@ export default function CreditBillsPage() {
       {/* Pagination controls */}
       {totalPages > 1 && (
         <div className="flex items-center justify-between px-4 py-3 border border-zinc-200/60 dark:border-zinc-800/80 bg-white dark:bg-[#0c0c14] rounded-2xl shadow-[0_4px_20px_rgb(0,0,0,0.005)]">
-          <span className="text-xs font-semibold text-zinc-400 dark:text-zinc-550">
+          <span className="text-xs font-semibold text-zinc-400 dark:text-zinc-500">
             Page {page} of {totalPages}
           </span>
           <div className="flex items-center gap-2">
@@ -682,6 +940,245 @@ export default function CreditBillsPage() {
           </div>
         </div>
       )}
+
+      {/* ── Import Old Bill Modal ─────────────────────────────────── */}
+      <Modal
+        isOpen={isImportOpen}
+        onClose={() => !submittingImport && setIsImportOpen(false)}
+        title="Import Old Credit Bill"
+        maxWidth="max-w-2xl"
+      >
+        <form onSubmit={handleImportSubmit} className="space-y-4 max-h-[80vh] overflow-y-auto pr-1 scrollbar-none">
+          {/* Info banner */}
+          <div className="flex items-start gap-2.5 bg-amber-50 dark:bg-amber-950/20 border border-amber-200/70 dark:border-amber-800/40 rounded-xl p-3">
+            <span className="text-amber-500 text-lg leading-none mt-0.5">⚠</span>
+            <p className="text-[11px] text-amber-700 dark:text-amber-400 leading-relaxed">
+              This records a <strong>historical bill only</strong> — it will <strong>not</strong> affect stock levels or create any transaction records.
+            </p>
+          </div>
+
+          {/* Customer Details */}
+          <div className="space-y-3">
+            <p className="text-[10px] font-bold text-zinc-400 dark:text-zinc-500 uppercase tracking-wider">Customer Details</p>
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+              <div className="space-y-1.5">
+                <label className="text-xs font-semibold text-zinc-600 dark:text-zinc-400">Customer Name <span className="text-rose-500">*</span></label>
+                <Input
+                  value={importForm.customerName}
+                  onChange={(e) => setImportForm((f) => ({ ...f, customerName: e.target.value }))}
+                  placeholder="e.g. John Silva"
+                  required
+                />
+              </div>
+              <div className="space-y-1.5">
+                <label className="text-xs font-semibold text-zinc-600 dark:text-zinc-400">Phone</label>
+                <Input
+                  value={importForm.customerPhone}
+                  onChange={(e) => setImportForm((f) => ({ ...f, customerPhone: e.target.value }))}
+                  placeholder="e.g. 071 234 5678"
+                />
+              </div>
+            </div>
+            <div className="space-y-1.5">
+              <label className="text-xs font-semibold text-zinc-600 dark:text-zinc-400">Address</label>
+              <Input
+                value={importForm.customerAddress}
+                onChange={(e) => setImportForm((f) => ({ ...f, customerAddress: e.target.value }))}
+                placeholder="Customer address (optional)"
+              />
+            </div>
+          </div>
+
+          {/* Dates */}
+          <div className="grid grid-cols-2 gap-3">
+            <div className="space-y-1.5">
+              <label className="text-xs font-semibold text-zinc-600 dark:text-zinc-400">Bill Date <span className="text-rose-500">*</span></label>
+              <Input
+                type="date"
+                value={importForm.billDate}
+                onChange={(e) => setImportForm((f) => ({ ...f, billDate: e.target.value }))}
+                required
+              />
+            </div>
+            <div className="space-y-1.5">
+              <label className="text-xs font-semibold text-zinc-600 dark:text-zinc-400">Due Date</label>
+              <Input
+                type="date"
+                value={importForm.dueDate}
+                onChange={(e) => setImportForm((f) => ({ ...f, dueDate: e.target.value }))}
+              />
+            </div>
+          </div>
+
+          {/* Line Items */}
+          <div className="space-y-2">
+            <div className="flex items-center justify-between flex-wrap gap-2">
+              <p className="text-[10px] font-bold text-zinc-400 dark:text-zinc-500 uppercase tracking-wider">Items <span className="text-rose-500">*</span></p>
+              <div className="flex items-center gap-2">
+                {/* CSV upload */}
+                <button
+                  type="button"
+                  onClick={() => csvFileRef.current?.click()}
+                  className="text-[11px] font-semibold text-emerald-600 dark:text-emerald-400 hover:text-emerald-700 dark:hover:text-emerald-300 flex items-center gap-1 cursor-pointer border border-emerald-200 dark:border-emerald-800/50 bg-emerald-50 dark:bg-emerald-950/20 hover:bg-emerald-100 dark:hover:bg-emerald-950/40 px-2.5 py-1 rounded-lg transition-all"
+                >
+                  <svg xmlns="http://www.w3.org/2000/svg" className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12" /></svg>
+                  Upload CSV
+                </button>
+                {/* Sample download */}
+                <button
+                  type="button"
+                  onClick={downloadSampleCsv}
+                  className="text-[11px] font-semibold text-zinc-500 dark:text-zinc-400 hover:text-zinc-700 dark:hover:text-zinc-200 flex items-center gap-1 cursor-pointer"
+                  title="Download a sample CSV to use as a template"
+                >
+                  <svg xmlns="http://www.w3.org/2000/svg" className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M12 4v12m0 0l-4-4m4 4l4-4M4 20h16" /></svg>
+                  Sample
+                </button>
+                {/* Add row */}
+                <button
+                  type="button"
+                  onClick={() => setImportItems((prev) => [...prev, { productName: "", sku: "", quantity: "", unitPrice: "" }])}
+                  className="text-[11px] font-semibold text-indigo-600 dark:text-indigo-400 hover:text-indigo-700 dark:hover:text-indigo-300 flex items-center gap-1 cursor-pointer"
+                >
+                  <Plus className="w-3.5 h-3.5" /> Add Row
+                </button>
+              </div>
+            </div>
+            <div className="space-y-2">
+              {/* Header row */}
+              <div className="grid gap-2 px-1" style={{gridTemplateColumns: '3fr 1.2fr 1fr 1.2fr 2rem'}}>
+                <span className="text-[9px] font-bold uppercase tracking-wider text-zinc-400 dark:text-zinc-500">Product Name</span>
+                <span className="text-[9px] font-bold uppercase tracking-wider text-zinc-400 dark:text-zinc-500">SKU</span>
+                <span className="text-[9px] font-bold uppercase tracking-wider text-zinc-400 dark:text-zinc-500">Qty</span>
+                <span className="text-[9px] font-bold uppercase tracking-wider text-zinc-400 dark:text-zinc-500">Unit Price (Rs.)</span>
+                <span></span>
+              </div>
+              {importItems.map((item, idx) => (
+                <div key={idx} className="grid gap-2 items-center" style={{gridTemplateColumns: '3fr 1.2fr 1fr 1.2fr 2rem'}}>
+                  <Input
+                    value={item.productName}
+                    onChange={(e) => setImportItems((prev) => prev.map((it, i) => i === idx ? { ...it, productName: e.target.value } : it))}
+                    placeholder="Product name"
+                    className="text-xs"
+                  />
+                  <Input
+                    value={item.sku}
+                    onChange={(e) => setImportItems((prev) => prev.map((it, i) => i === idx ? { ...it, sku: e.target.value } : it))}
+                    placeholder="N/A"
+                    className="text-xs"
+                  />
+                  <Input
+                    type="number"
+                    min="1"
+                    value={item.quantity}
+                    onChange={(e) => setImportItems((prev) => prev.map((it, i) => i === idx ? { ...it, quantity: e.target.value } : it))}
+                    placeholder="0"
+                    className="text-xs"
+                  />
+                  <Input
+                    type="number"
+                    min="0"
+                    step="0.01"
+                    value={item.unitPrice}
+                    onChange={(e) => setImportItems((prev) => prev.map((it, i) => i === idx ? { ...it, unitPrice: e.target.value } : it))}
+                    placeholder="0.00"
+                    className="text-xs"
+                  />
+                  <div className="flex justify-center">
+                    {importItems.length > 1 && (
+                      <button
+                        type="button"
+                        onClick={() => setImportItems((prev) => prev.filter((_, i) => i !== idx))}
+                        className="text-zinc-400 hover:text-rose-500 dark:hover:text-rose-400 transition-colors cursor-pointer w-7 h-7 flex items-center justify-center rounded-lg hover:bg-rose-50 dark:hover:bg-rose-950/20"
+                      >
+                        <span className="text-base leading-none">×</span>
+                      </button>
+                    )}
+                  </div>
+                </div>
+              ))}
+            </div>
+            {/* Running subtotal */}
+            {(() => {
+              const sub = importItems.reduce((s, it) => s + (Number(it.quantity) * Number(it.unitPrice) || 0), 0);
+              const disc = Number(importForm.discount) || 0;
+              const grand = Math.max(0, sub - disc);
+              return sub > 0 ? (
+                <div className="flex justify-end gap-4 text-xs font-semibold text-zinc-600 dark:text-zinc-400 pt-1 pr-1">
+                  <span>Subtotal: <span className="text-zinc-800 dark:text-zinc-200">Rs. {sub.toFixed(2)}</span></span>
+                  {disc > 0 && <span>Discount: <span className="text-rose-500">-Rs. {disc.toFixed(2)}</span></span>}
+                  <span>Grand Total: <span className="text-indigo-600 dark:text-indigo-400 font-bold">Rs. {grand.toFixed(2)}</span></span>
+                </div>
+              ) : null;
+            })()}
+          </div>
+
+          {/* Discount and Payment */}
+          <div className="grid grid-cols-2 gap-3">
+            <div className="space-y-1.5">
+              <label className="text-xs font-semibold text-zinc-600 dark:text-zinc-400">Discount (Rs.)</label>
+              <Input
+                type="number"
+                min="0"
+                step="0.01"
+                value={importForm.discount}
+                onChange={(e) => setImportForm((f) => ({ ...f, discount: e.target.value }))}
+                placeholder="0.00"
+              />
+            </div>
+            <div className="space-y-1.5">
+              <label className="text-xs font-semibold text-zinc-600 dark:text-zinc-400">Amount Already Paid (Rs.)</label>
+              <Input
+                type="number"
+                min="0"
+                step="0.01"
+                value={importForm.amountPaid}
+                onChange={(e) => setImportForm((f) => ({ ...f, amountPaid: e.target.value }))}
+                placeholder="0.00"
+              />
+            </div>
+          </div>
+
+          {/* Note */}
+          <div className="space-y-1.5">
+            <label className="text-xs font-semibold text-zinc-600 dark:text-zinc-400">Note (optional)</label>
+            <textarea
+              value={importForm.note}
+              onChange={(e) => setImportForm((f) => ({ ...f, note: e.target.value }))}
+              placeholder="e.g. Bill from March 2024, before system migration"
+              rows={2}
+            className="w-full px-3 py-2 text-sm text-zinc-900 dark:text-zinc-100 placeholder:text-zinc-400 dark:placeholder:text-zinc-500 bg-zinc-50/30 dark:bg-zinc-900/30 border border-zinc-200 dark:border-zinc-800 rounded-xl focus:outline-none focus:border-indigo-500 focus:ring-4 focus:ring-indigo-500/5 transition-all resize-none"
+            />
+          </div>
+
+          {/* Actions */}
+          <div className="flex items-center gap-2 pt-2 border-t border-zinc-100 dark:border-zinc-800/60">
+            <button
+              type="button"
+              onClick={() => setIsImportOpen(false)}
+              disabled={submittingImport}
+              className="flex-1 py-2.5 text-xs font-semibold text-zinc-600 dark:text-zinc-400 border border-zinc-200 dark:border-zinc-800 rounded-xl hover:bg-zinc-50 dark:hover:bg-zinc-900/50 transition-all cursor-pointer disabled:opacity-50"
+            >
+              Cancel
+            </button>
+            <button
+              type="submit"
+              disabled={submittingImport}
+              className="flex-1 py-2.5 text-xs font-bold text-white bg-amber-500 hover:bg-amber-400 rounded-xl shadow-sm transition-all cursor-pointer disabled:opacity-50 flex items-center justify-center gap-2"
+            >
+              {submittingImport ? "Importing..." : "Import Bill"}
+            </button>
+          </div>
+          {/* Hidden CSV file input */}
+          <input
+            ref={csvFileRef}
+            type="file"
+            accept=".csv"
+            onChange={parseCsv}
+            className="hidden"
+          />
+        </form>
+      </Modal>
 
       {/* Bill Details / Print view Modal */}
       <Modal

@@ -6,9 +6,10 @@ interface ModalProps {
   onClose: () => void;
   title: string;
   children: React.ReactNode;
+  maxWidth?: string;
 }
 
-export function Modal({ isOpen, onClose, title, children }: ModalProps) {
+export function Modal({ isOpen, onClose, title, children, maxWidth = 'max-w-md' }: ModalProps) {
   useEffect(() => {
     if (isOpen) {
       document.body.style.overflow = 'hidden';
@@ -28,7 +29,7 @@ export function Modal({ isOpen, onClose, title, children }: ModalProps) {
         className="absolute inset-0 bg-zinc-900/40 dark:bg-black/60 backdrop-blur-md" 
         onClick={onClose}
       />
-      <div className="relative bg-white dark:bg-[#0c0c14] rounded-2xl shadow-xl w-full max-w-md max-h-[90vh] flex flex-col animate-in zoom-in-95 duration-200 border border-zinc-100 dark:border-zinc-800/80">
+      <div className={`relative bg-white dark:bg-[#0c0c14] rounded-2xl shadow-xl w-full ${maxWidth} max-h-[90vh] flex flex-col animate-in zoom-in-95 duration-200 border border-zinc-100 dark:border-zinc-800/80`}>
         <div className="flex items-center justify-between p-6 border-b border-zinc-100 dark:border-zinc-800/60">
           <h2 className="text-lg font-semibold text-zinc-900 dark:text-zinc-100">{title}</h2>
           <button 

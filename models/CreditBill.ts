@@ -1,7 +1,7 @@
 import mongoose, { Schema, Document } from 'mongoose';
 
 export interface IBillItem {
-  product: mongoose.Types.ObjectId;
+  product?: mongoose.Types.ObjectId;
   productName: string;
   sku: string;
   quantity: number;
@@ -29,6 +29,7 @@ export interface ICreditBill extends Document {
   status: 'Pending' | 'Partially Paid' | 'Paid' | 'Overdue';
   dueDate?: Date;
   note?: string;
+  isHistorical: boolean;
   paymentHistory: IPaymentRecord[];
   createdBy?: mongoose.Types.ObjectId;
   createdAt: Date;
@@ -37,9 +38,9 @@ export interface ICreditBill extends Document {
 
 const BillItemSchema = new Schema<IBillItem>(
   {
-    product: { type: Schema.Types.ObjectId, ref: 'Product', required: true },
+    product: { type: Schema.Types.ObjectId, ref: 'Product', required: false },
     productName: { type: String, required: true },
-    sku: { type: String, required: true },
+    sku: { type: String, default: 'N/A' },
     quantity: { type: Number, required: true, min: 1 },
     unitPrice: { type: Number, required: true, min: 0 },
     total: { type: Number, required: true, min: 0 },
@@ -75,6 +76,7 @@ const CreditBillSchema: Schema = new Schema(
     },
     dueDate: { type: Date },
     note: { type: String },
+    isHistorical: { type: Boolean, default: false },
     paymentHistory: { type: [PaymentRecordSchema], default: [] },
     createdBy: { type: Schema.Types.ObjectId, ref: 'User' },
   },
@@ -93,5 +95,11 @@ CreditBillSchema.pre<ICreditBill>('save', function (this: ICreditBill) {
     this.status = 'Pending';
   }
 });
+
+CreditBillSchema.index({ customerName: 1 });
+CreditBillSchema.index({ customerPhone: 1 });
+CreditBillSchema.index({ status: 1 });
+CreditBillSchema.index({ dueDate: 1 });
+CreditBillSchema.index({ createdAt: -1 });
 
 export default mongoose.models.CreditBill || mongoose.model<ICreditBill>('CreditBill', CreditBillSchema);

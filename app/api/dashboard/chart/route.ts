@@ -16,17 +16,17 @@ export async function GET() {
     const colomboNow = new Date(nowStr);
     colomboNow.setDate(colomboNow.getDate() - 7);
     colomboNow.setHours(0, 0, 0, 0);
-    
+
     const colomboOffsetMs = 5.5 * 60 * 60 * 1000;
     const sevenDaysAgoUTC = new Date(colomboNow.getTime() - colomboOffsetMs);
 
     const transactions = await Transaction.find({
-      date: { $gte: sevenDaysAgoUTC }
-    });
+      date: { $gte: sevenDaysAgoUTC },
+    }).lean();
 
     // Aggregate by day
-    const chartDataMap: Record<string, { date: string, in: number, out: number }> = {};
-    
+    const chartDataMap: Record<string, { date: string; in: number; out: number }> = {};
+
     // Initialize last 7 days
     for (let i = 6; i >= 0; i--) {
       const d = new Date();
@@ -35,7 +35,7 @@ export async function GET() {
       chartDataMap[dateStr] = { date: dateStr, in: 0, out: 0 };
     }
 
-    transactions.forEach(t => {
+    transactions.forEach((t) => {
       const dateStr = new Date(t.date).toLocaleDateString('en-US', { timeZone: 'Asia/Colombo', month: 'short', day: 'numeric' });
       if (chartDataMap[dateStr]) {
         if (t.type === 'in') {
@@ -49,7 +49,8 @@ export async function GET() {
     const chartData = Object.values(chartDataMap);
 
     return NextResponse.json({ success: true, data: chartData });
-  } catch (error: any) {
-    return NextResponse.json({ success: false, error: error.message }, { status: 500 });
+  } catch (error: unknown) {
+    const message = error instanceof Error ? error.message : 'Unknown error';
+    return NextResponse.json({ success: false, error: message }, { status: 500 });
   }
 }

@@ -6,7 +6,7 @@ import Product from "@/models/Product";
 import User from "@/models/User";
 import { authOptions } from "@/lib/auth";
 
-export async function GET(req: NextRequest) {
+export async function GET() {
   try {
     const session = await getServerSession(authOptions);
     if (!session) {
@@ -14,18 +14,19 @@ export async function GET(req: NextRequest) {
     }
 
     await dbConnect();
-    
+
     // Ensure models are registered
-    if (!Product) console.warn("Product model not initialized");
-    if (!User) console.warn("User model not initialized");
+    void Product;
+    void User;
 
     const returns = await Return.find({})
       .populate("product", "name sku unitPrice")
       .populate("processedBy", "name email")
-      .sort({ createdAt: -1 });
+      .sort({ createdAt: -1 })
+      .lean();
 
     return NextResponse.json(returns);
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error("Error fetching returns:", error);
     return NextResponse.json(
       { error: "Failed to fetch returns" },
@@ -53,21 +54,24 @@ export async function POST(req: NextRequest) {
 
     await dbConnect();
 
+    const userId = (session.user as { id?: string }).id;
+
     const newReturn = await Return.create({
       product,
       quantity,
       reason,
       customerName,
       status: "Pending",
-      processedBy: (session.user as any).id,
+      processedBy: userId,
     });
 
     const populatedReturn = await Return.findById(newReturn._id)
       .populate("product", "name sku unitPrice")
-      .populate("processedBy", "name email");
+      .populate("processedBy", "name email")
+      .lean();
 
     return NextResponse.json(populatedReturn, { status: 201 });
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error("Error creating return:", error);
     return NextResponse.json(
       { error: "Failed to create return record" },

@@ -13,13 +13,15 @@ interface StockChartProps {
   }>;
 }
 
+const emptySubscribe = () => () => {};
+
 export function StockChart({ data }: StockChartProps) {
   const { theme } = useTheme();
-  const [mounted, setMounted] = React.useState(false);
-
-  React.useEffect(() => {
-    setMounted(true);
-  }, []);
+  const mounted = React.useSyncExternalStore(
+    emptySubscribe,
+    () => true,
+    () => false
+  );
   
   const isDark = theme === 'dark';
   

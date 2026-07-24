@@ -404,7 +404,7 @@ export default function CreateCreditBillPage() {
                   <div key={idx} className="p-3 space-y-2.5 bg-white dark:bg-[#0c0c14]">
                     {/* Item label + remove */}
                     <div className="flex items-center justify-between">
-                      <span className="text-[9px] font-bold text-zinc-450 dark:text-zinc-550 uppercase tracking-widest">
+                      <span className="text-[9px] font-bold text-zinc-400 dark:text-zinc-500 uppercase tracking-widest">
                         Item #{idx + 1}
                       </span>
                       {billItems.length > 1 && (

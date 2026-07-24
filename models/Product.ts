@@ -30,4 +30,7 @@ const ProductSchema: Schema = new Schema({
   updatedAt: { type: Date, default: Date.now },
 });
 
+ProductSchema.index({ name: 1 });
+ProductSchema.index({ category: 1 });
+
 export default mongoose.models.Product || mongoose.model<IProduct>('Product', ProductSchema);

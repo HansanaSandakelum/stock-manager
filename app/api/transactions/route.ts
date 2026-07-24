@@ -19,29 +19,31 @@ export async function GET(req: Request) {
     const page = parseInt(searchParams.get('page') || '1');
     const limit = parseInt(searchParams.get('limit') || '20');
 
-    const query: any = {};
+    const query: Record<string, unknown> = {};
     if (product) query.product = product;
     if (type) {
       query.type = type;
     }
     if (dateFrom || dateTo) {
-      query.date = {};
-      if (dateFrom) query.date.$gte = new Date(dateFrom);
-      if (dateTo) query.date.$lte = new Date(dateTo);
+      const dateFilter: Record<string, Date> = {};
+      if (dateFrom) dateFilter.$gte = new Date(dateFrom);
+      if (dateTo) dateFilter.$lte = new Date(dateTo);
+      query.date = dateFilter;
     }
 
     await dbConnect();
-    
+
     // Ensure models are registered
-    if (!User) console.log('User model not loaded');
-    if (!Product) console.log('Product model not loaded');
+    void User;
+    void Product;
 
     const transactions = await Transaction.find(query)
       .populate('product', 'name sku')
       .populate('createdBy', 'name')
       .sort({ date: -1, createdAt: -1 })
       .skip((page - 1) * limit)
-      .limit(limit);
+      .limit(limit)
+      .lean();
 
     const total = await Transaction.countDocuments(query);
 
@@ -51,11 +53,12 @@ export async function GET(req: Request) {
       pagination: {
         total,
         page,
-        pages: Math.ceil(total / limit)
-      }
+        pages: Math.ceil(total / limit),
+      },
     });
-  } catch (error: any) {
-    return NextResponse.json({ success: false, error: error.message }, { status: 500 });
+  } catch (error: unknown) {
+    const message = error instanceof Error ? error.message : 'Unknown error';
+    return NextResponse.json({ success: false, error: message }, { status: 500 });
   }
 }
 
@@ -81,8 +84,11 @@ export async function POST(req: Request) {
     }
 
     // Update product quantity
-    if (type === 'in' || type === 'return') {
+    if (type === 'in') {
       product.quantity += quantity;
+    } else if (type === 'return') {
+      // Returns are tracked separately — do NOT add to main stock
+      product.returnedQuantity = (product.returnedQuantity || 0) + quantity;
     } else if (type === 'out') {
       product.quantity -= quantity;
     } else if (type === 'free-issue') {
@@ -91,6 +97,8 @@ export async function POST(req: Request) {
     }
     await product.save();
 
+    const userId = (session.user as { id?: string }).id;
+
     // Create transaction
     const transaction = await Transaction.create({
       product: productId,
@@ -98,11 +106,12 @@ export async function POST(req: Request) {
       quantity,
       note,
       date: date ? new Date(date) : new Date(),
-      createdBy: (session.user as any).id,
+      createdBy: userId,
     });
 
     return NextResponse.json({ success: true, data: transaction }, { status: 201 });
-  } catch (error: any) {
-    return NextResponse.json({ success: false, error: error.message }, { status: 500 });
+  } catch (error: unknown) {
+    const message = error instanceof Error ? error.message : 'Unknown error';
+    return NextResponse.json({ success: false, error: message }, { status: 500 });
   }
 }

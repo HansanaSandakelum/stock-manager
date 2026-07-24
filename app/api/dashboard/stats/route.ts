@@ -12,11 +12,34 @@ export async function GET() {
 
     await dbConnect();
 
-    const products = await Product.find({});
-    
-    const totalProducts = products.length;
-    const totalValue = products.reduce((sum, p) => sum + (p.quantity * p.unitPrice), 0);
-    const lowStockCount = products.filter(p => p.quantity <= p.lowStockThreshold).length;
+    // Use MongoDB aggregation for fast DB-level calculation
+    const [productStats] = await Product.aggregate([
+      {
+        $facet: {
+          totalProducts: [{ $count: 'count' }],
+          totalValue: [
+            {
+              $group: {
+                _id: null,
+                sum: { $sum: { $multiply: ['$quantity', '$unitPrice'] } },
+              },
+            },
+          ],
+          lowStockCount: [
+            {
+              $match: {
+                $expr: { $lte: ['$quantity', { $ifNull: ['$lowStockThreshold', 10] }] },
+              },
+            },
+            { $count: 'count' },
+          ],
+        },
+      },
+    ]);
+
+    const totalProducts = productStats?.totalProducts?.[0]?.count || 0;
+    const totalValue = productStats?.totalValue?.[0]?.sum || 0;
+    const lowStockCount = productStats?.lowStockCount?.[0]?.count || 0;
 
     // Get start of month in Colombo timezone to correctly query UTC dates
     const nowStr = new Date().toLocaleString('en-US', { timeZone: 'Asia/Colombo' });
@@ -25,11 +48,11 @@ export async function GET() {
     colomboNow.setHours(0, 0, 0, 0);
 
     // Convert back to UTC for MongoDB querying
-    const colomboOffsetMs = 5.5 * 60 * 60 * 1000; 
+    const colomboOffsetMs = 5.5 * 60 * 60 * 1000;
     const startOfMonthUTC = new Date(colomboNow.getTime() - colomboOffsetMs);
 
     const monthlyTransactions = await Transaction.countDocuments({
-      date: { $gte: startOfMonthUTC }
+      date: { $gte: startOfMonthUTC },
     });
 
     return NextResponse.json({
@@ -38,10 +61,11 @@ export async function GET() {
         totalProducts,
         totalValue,
         lowStockCount,
-        monthlyTransactions
-      }
+        monthlyTransactions,
+      },
     });
-  } catch (error: any) {
-    return NextResponse.json({ success: false, error: error.message }, { status: 500 });
+  } catch (error: unknown) {
+    const message = error instanceof Error ? error.message : 'Unknown error';
+    return NextResponse.json({ success: false, error: message }, { status: 500 });
   }
 }

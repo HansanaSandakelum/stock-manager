@@ -64,7 +64,8 @@ export async function GET(req: Request) {
       .populate('createdBy', 'name')
       .sort({ createdAt: -1 })
       .skip((page - 1) * limit)
-      .limit(limit);
+      .limit(limit)
+      .lean();
 
     const total = await CreditBill.countDocuments(query);
 
@@ -100,7 +101,18 @@ export async function POST(req: Request) {
     if (!session) return NextResponse.json({ success: false, error: 'Unauthorized' }, { status: 401 });
 
     const body = await req.json();
-    const { customerName, customerPhone, customerAddress, items, discount = 0, dueDate, note, amountPaid = 0 } = body;
+    const {
+      customerName,
+      customerPhone,
+      customerAddress,
+      items,
+      discount = 0,
+      dueDate,
+      note,
+      amountPaid = 0,
+      isHistorical = false,
+      billDate,
+    } = body;
 
     if (!customerName || !items || items.length === 0) {
       return NextResponse.json({ success: false, error: 'Customer name and at least one item are required' }, { status: 400 });
@@ -109,34 +121,58 @@ export async function POST(req: Request) {
     await dbConnect();
     void User;
 
-    // Validate and enrich each item, check stock
+    const userId = (session.user as { id?: string; email?: string }).id;
+
     const enrichedItems: Array<{
-      product: string;
+      product?: string;
       productName: string;
       sku: string;
       quantity: number;
       unitPrice: number;
       total: number;
     }> = [];
-    for (const item of items) {
-      const product = await Product.findById(item.product);
-      if (!product) {
-        return NextResponse.json({ success: false, error: `Product not found: ${item.product}` }, { status: 404 });
+
+    if (isHistorical) {
+      // ── Historical bill: free-text items, no stock check or deduction ──
+      for (const item of items) {
+        if (!item.productName || !item.quantity || !item.unitPrice) {
+          return NextResponse.json(
+            { success: false, error: 'Each item requires a product name, quantity, and unit price' },
+            { status: 400 },
+          );
+        }
+        const qty = Number(item.quantity);
+        const price = Number(item.unitPrice);
+        enrichedItems.push({
+          productName: item.productName,
+          sku: item.sku || 'N/A',
+          quantity: qty,
+          unitPrice: price,
+          total: qty * price,
+        });
       }
-      if (product.quantity < item.quantity) {
-        return NextResponse.json(
-          { success: false, error: `Insufficient stock for "${product.name}". Available: ${product.quantity}` },
-          { status: 400 },
-        );
+    } else {
+      // ── Normal bill: validate stock, deduct, create transactions ──
+      for (const item of items) {
+        const product = await Product.findById(item.product);
+        if (!product) {
+          return NextResponse.json({ success: false, error: `Product not found: ${item.product}` }, { status: 404 });
+        }
+        if (product.quantity < item.quantity) {
+          return NextResponse.json(
+            { success: false, error: `Insufficient stock for "${product.name}". Available: ${product.quantity}` },
+            { status: 400 },
+          );
+        }
+        enrichedItems.push({
+          product: product._id,
+          productName: product.name,
+          sku: product.sku,
+          quantity: item.quantity,
+          unitPrice: item.unitPrice ?? product.unitPrice,
+          total: (item.unitPrice ?? product.unitPrice) * item.quantity,
+        });
       }
-      enrichedItems.push({
-        product: product._id,
-        productName: product.name,
-        sku: product.sku,
-        quantity: item.quantity,
-        unitPrice: item.unitPrice ?? product.unitPrice,
-        total: (item.unitPrice ?? product.unitPrice) * item.quantity,
-      });
     }
 
     const subTotal = enrichedItems.reduce((s, i) => s + i.total, 0);
@@ -149,21 +185,22 @@ export async function POST(req: Request) {
       return NextResponse.json({ success: false, error: 'Amount paid cannot exceed the grand total' }, { status: 400 });
     }
 
-    const mainSku = enrichedItems.length > 0 ? enrichedItems[0].sku : 'UNKNOWN';
+    const mainSku = enrichedItems.length > 0 ? (enrichedItems[0].sku || 'HIST') : 'HIST';
     const billNumber = await generateBillNumber(mainSku);
-    const userId = (session.user as { id?: string; email?: string }).id;
 
-    // Deduct stock and create transaction records atomically
-    for (const item of enrichedItems) {
-      await Product.findByIdAndUpdate(item.product, { $inc: { quantity: -item.quantity } });
-      await Transaction.create({
-        product: item.product,
-        type: 'out',
-        quantity: item.quantity,
-        note: `Credit Bill ${billNumber} – ${item.productName}`,
-        date: new Date(),
-        createdBy: userId,
-      });
+    if (!isHistorical) {
+      // Deduct stock and create transaction records for normal bills only
+      for (const item of enrichedItems) {
+        await Product.findByIdAndUpdate(item.product, { $inc: { quantity: -item.quantity } });
+        await Transaction.create({
+          product: item.product,
+          type: 'out',
+          quantity: item.quantity,
+          note: `Credit Bill ${billNumber} – ${item.productName}`,
+          date: new Date(),
+          createdBy: userId,
+        });
+      }
     }
 
     // Create the bill
@@ -177,12 +214,16 @@ export async function POST(req: Request) {
       discount: discount || 0,
       grandTotal,
       amountPaid,
+      isHistorical,
       dueDate: dueDate ? new Date(dueDate) : undefined,
       note,
+      createdAt: billDate ? new Date(billDate) : new Date(),
       paymentHistory: amountPaid > 0 ? [{
         amount: amountPaid,
         date: new Date(),
-        note: 'Initial payment recorded during bill creation',
+        note: isHistorical
+          ? 'Initial payment recorded during historical bill import'
+          : 'Initial payment recorded during bill creation',
         recordedBy: userId,
       }] : [],
       createdBy: userId,
