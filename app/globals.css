@@ -53,6 +53,16 @@
     background-color: #0c0c14 !important;
     color: #f4f4f5 !important;
   }
+
+  /* Hide number input spinners to prevent text truncation in numeric inputs */
+  input[type="number"]::-webkit-inner-spin-button,
+  input[type="number"]::-webkit-outer-spin-button {
+    -webkit-appearance: none;
+    margin: 0;
+  }
+  input[type="number"] {
+    -moz-appearance: textfield;
+  }
 }
 
 /* ==========================================================================

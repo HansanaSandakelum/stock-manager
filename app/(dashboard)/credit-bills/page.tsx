@@ -1046,7 +1046,7 @@ export default function CreditBillsPage() {
             </div>
             <div className="space-y-2">
               {/* Header row */}
-              <div className="grid gap-2 px-1" style={{gridTemplateColumns: '3fr 1.2fr 1fr 1.2fr 2rem'}}>
+              <div className="grid gap-2 px-1" style={{gridTemplateColumns: '2.4fr 1.1fr 0.9fr 1.6fr 2rem'}}>
                 <span className="text-[9px] font-bold uppercase tracking-wider text-zinc-400 dark:text-zinc-500">Product Name</span>
                 <span className="text-[9px] font-bold uppercase tracking-wider text-zinc-400 dark:text-zinc-500">SKU</span>
                 <span className="text-[9px] font-bold uppercase tracking-wider text-zinc-400 dark:text-zinc-500">Qty</span>
@@ -1054,7 +1054,7 @@ export default function CreditBillsPage() {
                 <span></span>
               </div>
               {importItems.map((item, idx) => (
-                <div key={idx} className="grid gap-2 items-center" style={{gridTemplateColumns: '3fr 1.2fr 1fr 1.2fr 2rem'}}>
+                <div key={idx} className="grid gap-2 items-center" style={{gridTemplateColumns: '2.4fr 1.1fr 0.9fr 1.6fr 2rem'}}>
                   <Input
                     value={item.productName}
                     onChange={(e) => setImportItems((prev) => prev.map((it, i) => i === idx ? { ...it, productName: e.target.value } : it))}
