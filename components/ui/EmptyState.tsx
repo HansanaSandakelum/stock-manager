@@ -12,12 +12,12 @@ interface EmptyStateProps {
 
 export function EmptyState({ icon: Icon, title, description, actionLabel, onAction }: EmptyStateProps) {
   return (
-    <div className="flex flex-col items-center justify-center p-12 text-center bg-white dark:bg-zinc-900 rounded-2xl border border-zinc-200 dark:border-zinc-800 shadow-sm">
-      <div className="w-12 h-12 bg-zinc-100 dark:bg-zinc-800 rounded-full flex items-center justify-center mb-4">
-        <Icon className="w-6 h-6 text-zinc-900 dark:text-zinc-100" />
+    <div className="flex flex-col items-center justify-center py-16 px-8 text-center">
+      <div className="w-14 h-14 bg-surface-alt dark:bg-dark-surface-alt rounded-2xl flex items-center justify-center mb-5 ring-1 ring-border dark:ring-dark-border">
+        <Icon className="w-7 h-7 text-text-tertiary dark:text-dark-text-tertiary" />
       </div>
-      <h3 className="text-lg font-semibold text-zinc-900 dark:text-zinc-100 mb-1">{title}</h3>
-      <p className="text-sm text-zinc-500 dark:text-zinc-400 max-w-sm mb-6">{description}</p>
+      <h3 className="text-base font-semibold text-text dark:text-dark-text mb-1.5">{title}</h3>
+      <p className="text-sm text-text-tertiary dark:text-dark-text-tertiary max-w-sm mb-6">{description}</p>
       {actionLabel && onAction && (
         <Button onClick={onAction}>{actionLabel}</Button>
       )}

@@ -383,14 +383,23 @@ export default function InventoryDetailPage() {
                             </span>
                           </div>
 
-                          {/* Row 3: note */}
+                          {/* Row 3: invoice number */}
+                          {tx.invoiceNumber && (
+                            <div className="mt-2">
+                              <span className="inline-block text-[10px] font-medium font-mono px-1.5 py-0.5 rounded bg-indigo-50 text-indigo-700 dark:bg-indigo-950/20 dark:text-indigo-300 border border-indigo-200/50 dark:border-indigo-700/20">
+                                Inv: {tx.invoiceNumber}
+                              </span>
+                            </div>
+                          )}
+
+                          {/* Row 4: note */}
                           {tx.note && (
                             <p className="mt-2 text-[11px] text-zinc-600 dark:text-zinc-400 bg-zinc-50 dark:bg-zinc-900/50 rounded-xl px-3.5 py-2 border border-zinc-200/50 dark:border-zinc-800/60 leading-relaxed italic">
                               &ldquo;{tx.note}&rdquo;
                             </p>
                           )}
 
-                          {/* Row 4: user */}
+                          {/* Row 5: user */}
                           {tx.createdBy?.name && (
                             <p className="mt-2 text-[10px] text-zinc-400 dark:text-zinc-500 font-medium">
                               Recorded by <span className="font-semibold text-zinc-500 dark:text-zinc-400">{tx.createdBy.name}</span>

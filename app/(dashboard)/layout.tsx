@@ -18,14 +18,14 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
 
   if (status === 'loading' || status === 'unauthenticated') {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-zinc-50 dark:bg-zinc-950">
-        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-zinc-900 dark:border-zinc-100"></div>
+      <div className="min-h-screen flex items-center justify-center bg-surface-alt dark:bg-dark-surface">
+        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary-600"></div>
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen bg-zinc-50 dark:bg-zinc-950 font-sans text-zinc-900 dark:text-zinc-100">
+    <div className="min-h-screen bg-surface-alt dark:bg-dark-surface text-text dark:text-dark-text">
       <Sidebar mobileOpen={mobileOpen} setMobileOpen={setMobileOpen} />
       
       <div className="lg:pl-64 flex flex-col min-h-screen">

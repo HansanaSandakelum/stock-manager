@@ -21,6 +21,7 @@ import {
   Undo2,
   Receipt,
   Gift,
+  Store,
 } from "lucide-react";
 import { useTheme } from "@/components/ThemeProvider";
 
@@ -30,6 +31,7 @@ const navigation = [
   { name: "Products", href: "/products", icon: Package },
   { name: "Inventory", href: "/inventory", icon: Warehouse },
   { name: "Stock Handling", href: "/stock", icon: ClipboardList },
+  { name: "Shops", href: "/shops", icon: Store },
   { name: "Transactions", href: "/transactions", icon: ArrowRightLeft },
   { name: "Credit Bills", href: "/credit-bills", icon: Receipt },
   { name: "Free Issues", href: "/free-issues", icon: Gift },
@@ -58,7 +60,7 @@ export function Sidebar({
     
     // Deliver-only routes
     if (role === "deliver") {
-      return ["/products", "/stock", "/categories", "/transactions", "/returns", "/credit-bills", "/free-issues"].includes(item.href);
+      return ["/products", "/stock", "/shops", "/categories", "/transactions", "/returns", "/credit-bills", "/free-issues"].includes(item.href);
     }
     
     return true;
@@ -76,30 +78,30 @@ export function Sidebar({
 
       {/* Sidebar */}
       <div
-        className={`fixed inset-y-0 left-0 z-50 w-64 bg-white dark:bg-[#0c0c14] border-r border-zinc-100 dark:border-zinc-800/80 flex flex-col transition-transform duration-300 lg:translate-x-0 ${mobileOpen ? "translate-x-0" : "-translate-x-full"}`}
+        className={`fixed inset-y-0 left-0 z-50 w-64 bg-white dark:bg-dark-surface border-r border-border dark:border-dark-border flex flex-col transition-transform duration-300 lg:translate-x-0 ${mobileOpen ? "translate-x-0" : "-translate-x-full"}`}
       >
-        <div className="flex items-center justify-between h-16 px-6 border-b border-zinc-100 dark:border-zinc-800/80">
+        <div className="flex items-center justify-between h-16 px-6 border-b border-border dark:border-dark-border">
           <Link
             href="/"
-            className="flex items-center gap-2.5 font-bold text-lg tracking-tight text-zinc-900 dark:text-zinc-50"
+            className="flex items-center gap-2.5 font-bold text-lg tracking-tight text-text dark:text-dark-text"
           >
-            <div className="w-9 h-9 bg-gradient-to-tr from-indigo-600 to-blue-600 rounded-xl flex items-center justify-center shadow-md shadow-indigo-500/15">
+            <div className="w-9 h-9 bg-primary-600 rounded-xl flex items-center justify-center shadow-sm shadow-primary-500/20">
               <Package className="w-5 h-5 text-white" />
             </div>
             <span>
               Araliya
-              <span className="text-indigo-600 dark:text-indigo-400">Stocks</span>
+              <span className="text-primary-600 dark:text-primary-400">Stocks</span>
             </span>
           </Link>
           <button
-            className="lg:hidden text-zinc-400 hover:text-zinc-700 dark:hover:text-zinc-200 p-1.5 rounded-lg border border-transparent hover:bg-zinc-50 dark:hover:bg-zinc-900"
+            className="lg:hidden text-text-tertiary hover:text-text dark:text-dark-text-tertiary dark:hover:text-dark-text p-1.5 rounded-lg border border-transparent hover:bg-surface-hover dark:hover:bg-dark-surface-hover"
             onClick={() => setMobileOpen(false)}
           >
             <X className="w-4 h-4" />
           </button>
         </div>
 
-        <nav className="flex-1 px-4 py-6 space-y-1.5 overflow-y-auto">
+        <nav className="flex-1 px-3 py-4 space-y-0.5 overflow-y-auto">
           {filteredNavigation.map((item) => {
             const isActive =
               pathname === item.href ||
@@ -108,18 +110,22 @@ export function Sidebar({
               <Link
                 key={item.name}
                 href={item.href}
-                className={`flex items-center gap-3 px-3.5 py-3 rounded-xl text-sm font-medium transition-all relative duration-200 group active:scale-[0.98] ${
+                className={`flex items-center gap-3 px-3.5 py-2.5 rounded-xl text-sm font-medium transition-all relative duration-200 group active:scale-[0.98] ${
                   isActive
-                    ? "bg-indigo-50/50 text-indigo-600 dark:bg-indigo-950/20 dark:text-indigo-400"
-                    : "text-zinc-600 hover:bg-zinc-50 hover:text-zinc-900 dark:text-zinc-400 dark:hover:bg-zinc-900/40 dark:hover:text-zinc-100"
+                    ? "bg-primary-50 text-primary-700 dark:bg-primary-500/10 dark:text-primary-400"
+                    : "text-text-secondary hover:text-text hover:bg-surface-hover dark:text-dark-text-secondary dark:hover:text-dark-text dark:hover:bg-dark-surface-hover"
                 }`}
                 onClick={() => setMobileOpen(false)}
               >
                 {isActive && (
-                  <span className="absolute left-0 top-1/3 bottom-1/3 w-1 bg-indigo-600 dark:bg-indigo-400 rounded-r-md" />
+                  <span className="absolute left-0 top-1/4 bottom-1/4 w-0.5 bg-primary-600 dark:bg-primary-400 rounded-r-full" />
                 )}
                 <item.icon
-                  className={`w-5 h-5 transition-transform duration-200 group-hover:scale-105 ${isActive ? "text-indigo-600 dark:text-indigo-400" : "text-zinc-400 group-hover:text-zinc-600 dark:group-hover:text-zinc-200"}`}
+                  className={`w-4.5 h-4.5 transition-transform duration-200 group-hover:scale-105 ${
+                    isActive
+                      ? "text-primary-600 dark:text-primary-400"
+                      : "text-text-tertiary group-hover:text-text-secondary dark:text-dark-text-tertiary dark:group-hover:text-dark-text-secondary"
+                  }`}
                 />
                 {item.name}
               </Link>
@@ -127,23 +133,23 @@ export function Sidebar({
           })}
         </nav>
 
-        <div className="p-4 border-t border-zinc-100 dark:border-zinc-800/80">
-          <div className="flex items-center gap-3 px-3.5 py-3.5 rounded-xl bg-zinc-50/50 dark:bg-zinc-900/40 border border-zinc-100 dark:border-zinc-800/40 mb-3">
-            <div className="w-9 h-9 rounded-xl bg-gradient-to-tr from-indigo-50 to-blue-50 dark:from-indigo-950/20 dark:to-blue-950/20 text-indigo-600 dark:text-indigo-400 flex items-center justify-center font-bold text-sm border border-indigo-100/50 dark:border-indigo-900/30">
+        <div className="p-3 border-t border-border dark:border-dark-border">
+          <div className="flex items-center gap-3 px-3.5 py-3 rounded-xl bg-surface-alt dark:bg-dark-surface-alt border border-border dark:border-dark-border mb-2">
+            <div className="w-9 h-9 rounded-xl bg-primary-100 dark:bg-primary-500/10 text-primary-600 dark:text-primary-400 flex items-center justify-center font-bold text-sm">
               {session?.user?.name?.charAt(0) || "U"}
             </div>
             <div className="flex-1 min-w-0">
-              <p className="text-xs font-semibold text-zinc-800 dark:text-zinc-200 truncate">
+              <p className="text-xs font-semibold text-text dark:text-dark-text truncate">
                 {session?.user?.name}
               </p>
-              <p className="text-[10px] text-zinc-400 dark:text-zinc-500 truncate">
+              <p className="text-[10px] text-text-tertiary dark:text-dark-text-tertiary truncate">
                 {session?.user?.email}
               </p>
             </div>
           </div>
           <button
             onClick={() => signOut()}
-            className="flex items-center gap-3 px-3.5 py-2.5 w-full rounded-xl text-xs font-medium text-red-500 hover:text-red-600 dark:text-red-400 dark:hover:text-red-300 hover:bg-red-50/50 dark:hover:bg-red-950/20 transition-all duration-200 active:scale-[0.98]"
+            className="flex items-center gap-3 px-3.5 py-2.5 w-full rounded-xl text-xs font-medium text-danger-600 hover:text-danger-700 dark:text-danger-400 dark:hover:text-danger-300 hover:bg-danger-50 dark:hover:bg-danger-500/10 transition-all duration-200 active:scale-[0.98]"
           >
             <LogOut className="w-4 h-4" />
             Sign Out
@@ -170,22 +176,22 @@ export function Topbar({
         pathname.split("/")[1].slice(1);
 
   return (
-    <header className="h-16 bg-white/80 dark:bg-[#0c0c14]/80 backdrop-blur-md border-b border-zinc-100 dark:border-zinc-800/60 flex items-center justify-between px-4 lg:px-8 sticky top-0 z-30">
+    <header className="h-16 bg-white/70 dark:bg-dark-surface/70 backdrop-blur-xl border-b border-border dark:border-dark-border flex items-center justify-between px-4 lg:px-8 sticky top-0 z-30">
       <div className="flex items-center gap-4">
         <button
-          className="lg:hidden p-2 text-zinc-500 hover:bg-zinc-50 dark:hover:bg-zinc-800/50 rounded-xl border border-zinc-200/50 dark:border-zinc-800 transition-all"
+          className="lg:hidden p-2 text-text-tertiary hover:bg-surface-hover dark:hover:bg-dark-surface-hover rounded-xl border border-border dark:border-dark-border transition-all"
           onClick={() => setMobileOpen(true)}
         >
           <Menu className="w-4 h-4" />
         </button>
-        <h1 className="text-base font-semibold text-zinc-900 dark:text-zinc-50 tracking-tight">
+        <h1 className="text-base font-semibold text-text dark:text-dark-text tracking-tight">
           {title}
         </h1>
       </div>
 
       <button
         onClick={toggleTheme}
-        className="p-2 text-zinc-500 dark:text-zinc-400 hover:text-zinc-900 dark:hover:text-zinc-100 border border-transparent hover:border-zinc-200/40 dark:hover:border-zinc-800 hover:bg-zinc-50 dark:hover:bg-zinc-900 rounded-xl transition-all active:scale-95 cursor-pointer"
+        className="p-2 text-text-tertiary dark:text-dark-text-tertiary hover:text-text dark:hover:text-dark-text border border-transparent hover:border-border dark:hover:border-dark-border hover:bg-surface-hover dark:hover:bg-dark-surface-hover rounded-xl transition-all active:scale-95"
         aria-label="Toggle dark mode"
       >
         {theme === "dark" ? (

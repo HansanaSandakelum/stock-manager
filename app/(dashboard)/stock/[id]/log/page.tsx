@@ -13,7 +13,7 @@ import { Skeleton } from '@/components/ui/Skeleton';
 import { toast } from '@/components/ui/Toast';
 
 const PAGE_SIZE = 10;
-const COL_SPAN = 5;
+const COL_SPAN = 6;
 
 // == Helper Formatter Functions ==
 function fmtDate(dateStr: string) {
@@ -327,6 +327,7 @@ export default function ProductLogPage() {
                     <th className="px-3 sm:px-5 py-2.5 sm:py-3.5 font-semibold text-center w-24">Type</th>
                     <th className="px-3 sm:px-5 py-2.5 sm:py-3.5 font-semibold text-right w-32">Delta Quantity</th>
                     <th className="px-3 sm:px-5 py-2.5 sm:py-3.5 font-semibold w-40 hidden sm:table-cell">Recorded By</th>
+                    <th className="px-3 sm:px-5 py-2.5 sm:py-3.5 font-semibold w-32 hidden lg:table-cell">Invoice No.</th>
                     <th className="px-3 sm:px-5 py-2.5 sm:py-3.5 font-semibold hidden sm:table-cell">Note / Reason</th>
                   </tr>
                 </thead>
@@ -362,6 +363,17 @@ export default function ProductLogPage() {
                         {/* Recorded By */}
                         <td className="px-3 sm:px-5 py-3 text-zinc-500 dark:text-zinc-400 font-medium hidden sm:table-cell">
                           {tx.createdBy?.name || '-'}
+                        </td>
+
+                        {/* Invoice No. */}
+                        <td className="px-3 sm:px-5 py-3 hidden lg:table-cell">
+                          {tx.invoiceNumber ? (
+                            <span className="inline-block text-[10px] font-medium font-mono px-1.5 py-0.5 rounded bg-indigo-50 text-indigo-700 dark:bg-indigo-950/20 dark:text-indigo-300 border border-indigo-200/50 dark:border-indigo-700/20">
+                              {tx.invoiceNumber}
+                            </span>
+                          ) : (
+                            <span className="text-zinc-300 dark:text-zinc-600">—</span>
+                          )}
                         </td>
 
                         {/* Notes */}

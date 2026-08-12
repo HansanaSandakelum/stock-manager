@@ -1,18 +1,26 @@
 import React from 'react';
 
 interface ButtonProps extends React.ButtonHTMLAttributes<HTMLButtonElement> {
-  variant?: 'primary' | 'secondary' | 'destructive' | 'outline';
+  variant?: 'primary' | 'secondary' | 'destructive' | 'outline' | 'ghost';
+  size?: 'sm' | 'md' | 'lg';
   isLoading?: boolean;
 }
 
-export function Button({ variant = 'primary', isLoading, children, className = '', ...props }: ButtonProps) {
-  const baseStyle = 'px-4 py-2 text-sm font-medium rounded-xl transition-all duration-200 inline-flex items-center justify-center gap-2 active:scale-[0.97] disabled:pointer-events-none disabled:opacity-50';
+export function Button({ variant = 'primary', size = 'md', isLoading, children, className = '', ...props }: ButtonProps) {
+  const sizes = {
+    sm: 'px-3 py-1.5 text-xs gap-1.5',
+    md: 'px-4 py-2 text-sm gap-2',
+    lg: 'px-5 py-2.5 text-base gap-2.5',
+  };
+  
+  const baseStyle = 'font-medium rounded-xl transition-all duration-200 inline-flex items-center justify-center active:scale-[0.97] disabled:pointer-events-none disabled:opacity-50 ring-1 ring-inset ring-transparent hover:ring-opacity-100';
   
   const variants = {
-    primary: 'bg-gradient-to-r from-indigo-600 to-blue-600 hover:from-indigo-500 hover:to-blue-500 text-white shadow-sm shadow-indigo-500/10 hover:shadow-indigo-500/20 hover:-translate-y-[1px]',
-    secondary: 'bg-zinc-50 hover:bg-zinc-100 text-zinc-900 border border-zinc-100 dark:bg-zinc-800/40 dark:hover:bg-zinc-800/80 dark:border-zinc-800 dark:text-zinc-100 hover:-translate-y-[1px]',
-    destructive: 'bg-gradient-to-r from-red-500 to-rose-600 text-white hover:from-red-600 hover:to-rose-700 hover:shadow-sm hover:shadow-red-500/10 hover:-translate-y-[1px]',
-    outline: 'border border-zinc-200 text-zinc-900 hover:bg-zinc-50 dark:border-zinc-800 dark:text-zinc-100 dark:hover:bg-zinc-900 hover:-translate-y-[1px]',
+    primary: `${sizes[size]} bg-primary-600 hover:bg-primary-500 text-white shadow-sm shadow-primary-500/10 hover:shadow-primary-500/20 hover:-translate-y-[0.5px] ring-primary-600/0 hover:ring-primary-500/20`,
+    secondary: `${sizes[size]} bg-white hover:bg-surface-hover text-text border border-border dark:bg-dark-surface dark:hover:bg-dark-surface-hover dark:border-dark-border dark:text-dark-text hover:-translate-y-[0.5px]`,
+    destructive: `${sizes[size]} bg-danger-600 hover:bg-danger-500 text-white shadow-sm shadow-danger-500/10 hover:shadow-danger-500/20 hover:-translate-y-[0.5px] ring-danger-600/0 hover:ring-danger-500/20`,
+    outline: `${sizes[size]} border border-border text-text hover:bg-surface-hover dark:border-dark-border dark:text-dark-text dark:hover:bg-dark-surface-hover hover:-translate-y-[0.5px]`,
+    ghost: `${sizes[size]} text-text-secondary hover:text-text hover:bg-surface-hover dark:text-dark-text-secondary dark:hover:text-dark-text dark:hover:bg-dark-surface-hover`,
   };
 
   return (

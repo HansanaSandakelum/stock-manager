@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useMemo, useCallback } from "react";
+import { useState, useEffect, useMemo, useCallback, useRef } from "react";
 import { useRouter } from "next/navigation";
 import { useSession } from "next-auth/react";
 import {
@@ -21,6 +21,8 @@ import {
   CalendarDays,
   FileText,
   Hash,
+  Store,
+  Receipt,
 } from "lucide-react";
 import { Card } from "@/components/ui/Card";
 import { Badge } from "@/components/ui/Badge";
@@ -44,16 +46,26 @@ interface Product {
   image?: string;
 }
 
+interface Shop {
+  _id: string;
+  name: string;
+  code: string;
+}
+
 interface StockDialogState {
   open: boolean;
   type: "in" | "out";
   product: Product | null;
   quantity: string;
+  invoiceNumber: string;
   note: string;
   date: string;
   isReturn: boolean;
   saving: boolean;
   isManualSelect?: boolean;
+  shopId: string;
+  shopSearch: string;
+  showShopDropdown: boolean;
 }
 
 const PAGE_SIZE = 10;
@@ -173,18 +185,37 @@ export default function StockHandlingPage() {
     setMounted(true);
   }, []);
 
+  // Shops state
+  const [shops, setShops] = useState<Shop[]>([]);
+  const shopDropdownRef = useRef<HTMLDivElement>(null);
+
   // Stock In/Out Dialog State
   const [dialog, setDialog] = useState<StockDialogState>({
     open: false,
     type: "in",
     product: null,
     quantity: "",
+    invoiceNumber: "",
     note: "",
     date: new Date().toISOString().slice(0, 16), // datetime-local format
     isReturn: false,
     saving: false,
+    shopId: "",
+    shopSearch: "",
+    showShopDropdown: false,
   });
   const [dialogSearch, setDialogSearch] = useState("");
+
+  // Close shop dropdown on outside click
+  useEffect(() => {
+    function handleClickOutside(e: MouseEvent) {
+      if (shopDropdownRef.current && !shopDropdownRef.current.contains(e.target as Node)) {
+        setDialog((prev) => ({ ...prev, showShopDropdown: false }));
+      }
+    }
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, []);
 
   const openDialog = (product: Product, type: "in" | "out") => {
     setDialogSearch("");
@@ -193,11 +224,15 @@ export default function StockHandlingPage() {
       type,
       product,
       quantity: "",
+      invoiceNumber: "",
       note: "",
       date: new Date().toISOString().slice(0, 16),
       isReturn: type === "in" && role === "deliver",
       saving: false,
       isManualSelect: false,
+      shopId: "",
+      shopSearch: "",
+      showShopDropdown: false,
     });
   };
 
@@ -208,13 +243,25 @@ export default function StockHandlingPage() {
       type,
       product: null,
       quantity: "",
+      invoiceNumber: "",
       note: "",
       date: new Date().toISOString().slice(0, 16),
       isReturn: type === "in" && role === "deliver",
       saving: false,
       isManualSelect: true,
+      shopId: "",
+      shopSearch: "",
+      showShopDropdown: false,
     });
   };
+
+  const filteredShops = useMemo(() => {
+    if (!dialog.shopSearch.trim()) return shops;
+    const q = dialog.shopSearch.toLowerCase();
+    return shops.filter(
+      (s) => s.name.toLowerCase().includes(q) || s.code.toLowerCase().includes(q)
+    );
+  }, [shops, dialog.shopSearch]);
 
   const closeDialog = () => {
     if (dialog.saving) return;
@@ -248,9 +295,21 @@ export default function StockHandlingPage() {
     }
   }, []);
 
+  // Fetch shops
+  const fetchShops = useCallback(async () => {
+    try {
+      const res = await fetch('/api/shops?limit=1000');
+      const data = await res.json();
+      if (data.success) setShops(data.data);
+    } catch {
+      // Silent fail for shops
+    }
+  }, []);
+
   useEffect(() => {
     fetchProducts();
-  }, [fetchProducts]);
+    fetchShops();
+  }, [fetchProducts, fetchShops]);
 
   // == Handle Dialog Submit ==
   const handleDialogSubmit = useCallback(async () => {
@@ -258,6 +317,12 @@ export default function StockHandlingPage() {
     const quantity = parseInt(dialog.quantity);
     if (!quantity || quantity <= 0) {
       toast("Please enter a valid quantity", "error");
+      return;
+    }
+
+    // Require shop name for stock-out
+    if (dialog.type === "out" && !dialog.shopSearch.trim()) {
+      toast("Please select or enter a shop name for stock out", "error");
       return;
     }
 
@@ -272,42 +337,69 @@ export default function StockHandlingPage() {
     setDialog((prev) => ({ ...prev, saving: true }));
 
     try {
-      const actualType = dialog.type === "in" && dialog.isReturn ? "return" : dialog.type;
+      if (dialog.type === "out") {
+        let targetShopId = dialog.shopId;
+        let shopName = dialog.shopSearch.trim();
 
-      const res = await fetch("/api/transactions", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          product: dialog.product._id,
-          type: actualType,
-          quantity,
-          note:
-            dialog.note.trim() ||
-            `Stock ${dialog.type === "in" ? "In" : "Out"} – ${quantity} units${dialog.isReturn ? ' (Return)' : ''}`,
-          date: new Date(dialog.date).toISOString(),
-        }),
-      });
-      const data = await res.json();
-      if (!res.ok) throw new Error(data.error || "Failed");
+        // If shopId is not set directly from dropdown, check if typed name matches an existing shop
+        if (!targetShopId) {
+          const existingShop = shops.find(
+            (s) =>
+              s.name.toLowerCase() === shopName.toLowerCase() ||
+              s.code.toLowerCase() === shopName.toLowerCase()
+          );
+          if (existingShop) {
+            targetShopId = existingShop._id;
+            shopName = existingShop.name;
+          }
+        }
 
-      if (actualType === "return") {
-        const newReturnedQty = (dialog.product.returnedQuantity || 0) + quantity;
+        // If still no targetShopId, auto-create the shop in the system
+        if (!targetShopId) {
+          const codePrefix =
+            shopName
+              .replace(/[^a-zA-Z0-9\s]/g, "")
+              .split(/\s+/)
+              .map((w) => w[0])
+              .join("")
+              .toUpperCase()
+              .slice(0, 4) || "SHP";
+          const randomNum = Math.floor(1000 + Math.random() * 9000);
+          const generatedCode = `${codePrefix}-${randomNum}`;
+
+          const shopRes = await fetch("/api/shops", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              name: shopName,
+              code: generatedCode,
+            }),
+          });
+          const shopData = await shopRes.json();
+          if (!shopRes.ok) throw new Error(shopData.error || "Failed to create shop");
+          targetShopId = shopData.data._id;
+          shopName = shopData.data.name;
+          fetchShops();
+        }
+
+        // Stock Out → goes through shop issue API
+        const res = await fetch(`/api/shops/${targetShopId}/stock`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            productId: dialog.product._id,
+            quantity,
+            invoiceNumber: dialog.invoiceNumber.trim() || undefined,
+            note: dialog.note.trim() || undefined,
+            date: new Date(dialog.date).toISOString(),
+          }),
+        });
+        const data = await res.json();
+        if (!res.ok) throw new Error(data.error || "Failed");
+
+        const newQty = Math.max(0, dialog.product.quantity - quantity);
         toast(
-          `${dialog.product.name}: +${quantity} returned → ${newReturnedQty} total returned`,
-          "success",
-        );
-        setProducts((ps) =>
-          ps.map((p) =>
-            p._id === dialog.product!._id
-              ? { ...p, returnedQuantity: newReturnedQty }
-              : p,
-          ),
-        );
-      } else {
-        const delta = dialog.type === "in" ? quantity : -quantity;
-        const newQty = Math.max(0, dialog.product.quantity + delta);
-        toast(
-          `${dialog.product.name}: ${delta > 0 ? "+" : ""}${delta} → ${newQty} units`,
+          `${dialog.product.name}: -${quantity} → ${newQty} units (sent to ${shopName})`,
           "success",
         );
         setProducts((ps) =>
@@ -315,13 +407,60 @@ export default function StockHandlingPage() {
             p._id === dialog.product!._id ? { ...p, quantity: newQty } : p,
           ),
         );
+      } else {
+        // Stock In (or return)
+        const actualType = dialog.type === "in" && dialog.isReturn ? "return" : dialog.type;
+
+        const res = await fetch("/api/transactions", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            product: dialog.product._id,
+            type: actualType,
+            quantity,
+            invoiceNumber: dialog.invoiceNumber.trim() || undefined,
+            note:
+              dialog.note.trim() ||
+              `Stock ${dialog.type === "in" ? "In" : "Out"} – ${quantity} units${dialog.isReturn ? ' (Return)' : ''}`,
+            date: new Date(dialog.date).toISOString(),
+          }),
+        });
+        const data = await res.json();
+        if (!res.ok) throw new Error(data.error || "Failed");
+
+        if (actualType === "return") {
+          const newReturnedQty = (dialog.product.returnedQuantity || 0) + quantity;
+          toast(
+            `${dialog.product.name}: +${quantity} returned → ${newReturnedQty} total returned`,
+            "success",
+          );
+          setProducts((ps) =>
+            ps.map((p) =>
+              p._id === dialog.product!._id
+                ? { ...p, returnedQuantity: newReturnedQty }
+                : p,
+            ),
+          );
+        } else {
+          const delta = quantity;
+          const newQty = dialog.product.quantity + delta;
+          toast(
+            `${dialog.product.name}: +${delta} → ${newQty} units`,
+            "success",
+          );
+          setProducts((ps) =>
+            ps.map((p) =>
+              p._id === dialog.product!._id ? { ...p, quantity: newQty } : p,
+            ),
+          );
+        }
       }
       setDialog((prev) => ({ ...prev, open: false, saving: false }));
     } catch (e: any) {
       toast(e.message, "error");
       setDialog((prev) => ({ ...prev, saving: false }));
     }
-  }, [dialog]);
+  }, [dialog, shops]);
 
   // == Stats ==
   const total = products.length;
@@ -1195,7 +1334,112 @@ export default function StockHandlingPage() {
                 )}
             </div>
 
+            {/* Shop Selection (required for Stock Out) */}
+            {dialog.type === "out" && (
+              <div className="space-y-1.5" ref={shopDropdownRef}>
+                <label className="flex items-center gap-1.5 text-sm font-medium text-zinc-700 dark:text-zinc-300">
+                  <Store className="w-3.5 h-3.5 text-zinc-400" />
+                  Shop <span className="text-rose-500">*</span>
+                </label>
+                <div className="relative">
+                  <Search className="w-3.5 h-3.5 absolute left-3 top-1/2 -translate-y-1/2 text-zinc-400 pointer-events-none" />
+                  <input
+                    type="text"
+                    placeholder="Type or select a shop..."
+                    value={dialog.shopSearch}
+                    onChange={(e) => {
+                      const val = e.target.value;
+                      const match = shops.find(
+                        (s) => s.name.toLowerCase() === val.trim().toLowerCase()
+                      );
+                      setDialog((prev) => ({
+                        ...prev,
+                        shopSearch: val,
+                        shopId: match ? match._id : "",
+                        showShopDropdown: true,
+                      }));
+                    }}
+                    onFocus={() => setDialog((prev) => ({ ...prev, showShopDropdown: true }))}
+                    className={`w-full pl-9 pr-8 py-2.5 text-sm border rounded-xl transition-all focus:outline-none focus:ring-4 focus:ring-indigo-500/5 ${
+                      dialog.shopId
+                        ? 'bg-emerald-50/50 dark:bg-emerald-950/20 border-emerald-300 dark:border-emerald-800/50 text-emerald-800 dark:text-emerald-300 font-medium'
+                        : 'bg-zinc-50/30 hover:bg-zinc-50/70 focus:bg-white dark:bg-zinc-900/30 dark:hover:bg-zinc-900/60 dark:focus:bg-zinc-900/90 border-zinc-200 dark:border-zinc-800 focus:border-indigo-500'
+                    }`}
+                  />
+                  {dialog.shopSearch && (
+                    <button
+                      type="button"
+                      onClick={() => setDialog((prev) => ({ ...prev, shopId: "", shopSearch: "", showShopDropdown: false }))}
+                      className="absolute right-2 top-1/2 -translate-y-1/2 p-1 rounded-lg text-zinc-400 hover:text-zinc-600 dark:hover:text-zinc-300 hover:bg-zinc-100 dark:hover:bg-zinc-800 transition-colors"
+                    >
+                      <X className="w-3.5 h-3.5" />
+                    </button>
+                  )}
+                </div>
 
+                {dialog.showShopDropdown && (
+                  <div className="absolute z-50 w-[calc(100%-3rem)] mt-1 bg-white dark:bg-dark-surface border border-zinc-200 dark:border-zinc-800 rounded-xl shadow-lg shadow-black/5 dark:shadow-black/20 max-h-48 overflow-y-auto animate-scale-in">
+                    {filteredShops.length === 0 ? (
+                      <div className="px-3 py-3 text-xs text-center text-zinc-500 dark:text-zinc-400">
+                        {dialog.shopSearch.trim() ? (
+                          <span>
+                            New shop: <strong className="text-zinc-700 dark:text-zinc-200">"{dialog.shopSearch.trim()}"</strong> (will be registered)
+                          </span>
+                        ) : (
+                          'No shops registered yet. Type shop name above.'
+                        )}
+                      </div>
+                    ) : (
+                      <ul className="p-1 space-y-0.5">
+                        {filteredShops.map((shop) => (
+                          <li key={shop._id}>
+                            <button
+                              type="button"
+                              onClick={() => {
+                                setDialog((prev) => ({
+                                  ...prev,
+                                  shopId: shop._id,
+                                  shopSearch: shop.name,
+                                  showShopDropdown: false,
+                                }));
+                              }}
+                              className="w-full text-left px-3 py-2 rounded-lg text-xs transition-colors duration-150 text-zinc-600 dark:text-zinc-300 hover:bg-zinc-50 dark:hover:bg-zinc-800/50 flex items-center justify-between"
+                            >
+                              <div className="flex items-center gap-2">
+                                <Store className="w-3.5 h-3.5 text-zinc-400 dark:text-zinc-500 shrink-0" />
+                                <span className="font-medium">{shop.name}</span>
+                              </div>
+                              <span className="text-[10px] text-zinc-400 dark:text-zinc-500 font-mono">({shop.code})</span>
+                            </button>
+                          </li>
+                        ))}
+                      </ul>
+                    )}
+                  </div>
+                )}
+              </div>
+            )}
+
+            {/* Invoice Number (Optional reference) */}
+            <div className="space-y-1.5 min-w-0">
+              <label className="flex items-center gap-1.5 text-sm font-medium text-zinc-700 dark:text-zinc-300">
+                <Receipt className="w-3.5 h-3.5 text-zinc-400" />
+                Invoice Number
+                <span className="text-zinc-400 dark:text-zinc-500 font-normal text-xs">
+                  (optional ref)
+                </span>
+              </label>
+              <input
+                type="text"
+                id="dialog-invoice"
+                placeholder="e.g. INV-2026-001"
+                value={dialog.invoiceNumber}
+                onChange={(e) =>
+                  setDialog((prev) => ({ ...prev, invoiceNumber: e.target.value }))
+                }
+                className="w-full px-3.5 py-2.5 bg-zinc-50/30 hover:bg-zinc-50/70 focus:bg-white dark:bg-zinc-900/30 dark:hover:bg-zinc-900/60 dark:focus:bg-zinc-900/90 border border-zinc-200 dark:border-zinc-800 rounded-xl text-sm transition-all focus:outline-none focus:border-indigo-500 focus:ring-4 focus:ring-indigo-500/5 max-w-full"
+              />
+            </div>
 
             {/* Date */}
             <div className="space-y-1.5 min-w-0">
@@ -1253,7 +1497,8 @@ export default function StockHandlingPage() {
                 disabled={
                   dialog.saving ||
                   !dialog.quantity ||
-                  parseInt(dialog.quantity) <= 0
+                  parseInt(dialog.quantity) <= 0 ||
+                  (dialog.type === "out" && !dialog.shopSearch.trim())
                 }
                 className={`flex-1 px-4 py-2.5 text-sm font-semibold rounded-xl transition-all cursor-pointer active:scale-[0.98] disabled:opacity-50 disabled:cursor-not-allowed inline-flex items-center justify-center gap-2 ${
                   dialog.type === "in"

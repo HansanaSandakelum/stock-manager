@@ -160,15 +160,16 @@ export default function TransactionsPage() {
       return;
     }
 
-    const headers = ['Date', 'Product Name', 'SKU', 'Type', 'Quantity', 'Created By', 'Note'];
+    const headers = ['Date', 'Product Name', 'SKU', 'Type', 'Quantity', 'Invoice No.', 'Created By', 'Note'];
     const csvRows = [headers.join(',')];
 
     transactions.forEach(t => {
       const date = new Date(t.date).toLocaleDateString('en-LK', { day: '2-digit', month: 'short', year: 'numeric' });
       const productName = t.product?.name || 'Deleted Product';
       const sku = t.product?.sku || 'N/A';
-      const type = t.type === 'in' ? 'IN' : t.type === 'return' ? 'RETURN' : t.type === 'free-issue' ? 'FREE ISSUE' : 'OUT';
+      const type = t.type === 'in' ? 'IN' : t.type === 'return' ? 'RETURN' : t.type === 'free-issue' ? 'FREE ISSUE' : t.type === 'shop-issue' ? 'SHOP ISSUE' : t.type === 'shop-return' ? 'SHOP RETURN' : 'OUT';
       const qty = t.type === 'in' || t.type === 'return' ? `+${t.quantity}` : `-${t.quantity}`;
+      const invoiceNo = t.invoiceNumber || '';
       const createdBy = t.createdBy?.name || '';
       const note = t.note || '';
       
@@ -178,6 +179,7 @@ export default function TransactionsPage() {
         `"${sku}"`,
         `"${type}"`,
         `"${qty}"`,
+        `"${invoiceNo}"`,
         `"${createdBy}"`,
         `"${note}"`
       ];
@@ -310,6 +312,7 @@ export default function TransactionsPage() {
                     <th className="px-3 sm:px-6 py-3 sm:py-4.5 font-semibold">Product</th>
                     <th className="px-3 sm:px-6 py-3 sm:py-4.5 font-semibold text-center">Type</th>
                     <th className="px-3 sm:px-6 py-3 sm:py-4.5 font-semibold text-right">Quantity</th>
+                    <th className="px-3 sm:px-6 py-3 sm:py-4.5 font-semibold hidden lg:table-cell">Invoice No.</th>
                     <th className="px-3 sm:px-6 py-3 sm:py-4.5 font-semibold hidden sm:table-cell">Created By</th>
                     <th className="px-3 sm:px-6 py-3 sm:py-4.5 font-semibold hidden sm:table-cell">Note</th>
                   </tr>
@@ -331,11 +334,20 @@ export default function TransactionsPage() {
                       </td>
                       <td className="px-3 sm:px-6 py-3 sm:py-4 text-center">
                         <Badge variant={t.type === 'in' ? 'success' : t.type === 'return' ? 'warning' : t.type === 'free-issue' ? 'default' : 'danger'}>
-                          {t.type === 'in' ? 'IN' : t.type === 'return' ? 'RETURN' : t.type === 'free-issue' ? 'FREE ISSUE' : 'OUT'}
+                          {t.type === 'in' ? 'IN' : t.type === 'return' ? 'RETURN' : t.type === 'free-issue' ? 'FREE ISSUE' : t.type === 'shop-issue' ? 'SHOP ISSUE' : t.type === 'shop-return' ? 'SHOP RETURN' : 'OUT'}
                         </Badge>
                       </td>
                       <td className={`px-3 sm:px-6 py-3 sm:py-4 text-right font-extrabold tabular-nums ${t.type === 'in' ? 'text-emerald-600 dark:text-emerald-400' : t.type === 'return' ? 'text-amber-600 dark:text-amber-400' : t.type === 'free-issue' ? 'text-indigo-600 dark:text-indigo-400' : 'text-rose-600 dark:text-rose-400'}`}>
                         {t.type === 'in' || t.type === 'return' ? `+${t.quantity}` : `-${t.quantity}`}
+                      </td>
+                      <td className="px-3 sm:px-6 py-3 sm:py-4 hidden lg:table-cell">
+                        {t.invoiceNumber ? (
+                          <span className="inline-block text-[10px] font-medium font-mono px-1.5 py-0.5 rounded bg-indigo-50 text-indigo-700 dark:bg-indigo-950/20 dark:text-indigo-300 border border-indigo-200/50 dark:border-indigo-700/20">
+                            {t.invoiceNumber}
+                          </span>
+                        ) : (
+                          <span className="text-zinc-300 dark:text-zinc-600">—</span>
+                        )}
                       </td>
                       <td className="px-3 sm:px-6 py-3 sm:py-4 text-zinc-500 dark:text-zinc-400 font-medium hidden sm:table-cell">{t.createdBy?.name || '—'}</td>
                       <td className="px-3 sm:px-6 py-3 sm:py-4 text-zinc-600 dark:text-zinc-400 max-w-[200px] truncate italic hidden sm:table-cell" title={t.note || ''}>{t.note || '—'}</td>

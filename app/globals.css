@@ -3,32 +3,69 @@
 @custom-variant dark (&:where(.dark, .dark *));
 
 @theme {
-  --color-primary-50: #eff6ff;
-  --color-primary-100: #dbeafe;
-  --color-primary-500: #3b82f6;
-  --color-primary-600: #2563eb;
-  --color-primary-700: #1d4ed8;
+  --color-primary-50: #eef2ff;
+  --color-primary-100: #e0e7ff;
+  --color-primary-200: #c7d2fe;
+  --color-primary-300: #a5b4fc;
+  --color-primary-400: #818cf8;
+  --color-primary-500: #6366f1;
+  --color-primary-600: #4f46e5;
+  --color-primary-700: #4338ca;
+  --color-primary-800: #3730a3;
+  --color-primary-900: #312e81;
 
+  --color-success-50: #f0fdf4;
+  --color-success-100: #dcfce7;
+  --color-success-400: #4ade80;
   --color-success-500: #22c55e;
   --color-success-600: #16a34a;
+  --color-success-700: #15803d;
 
-  --color-destructive-500: #ef4444;
-  --color-destructive-600: #dc2626;
+  --color-warning-50: #fffbeb;
+  --color-warning-100: #fef3c7;
+  --color-warning-400: #fbbf24;
+  --color-warning-500: #f59e0b;
+  --color-warning-600: #d97706;
+
+  --color-danger-50: #fef2f2;
+  --color-danger-100: #fee2e2;
+  --color-danger-400: #f87171;
+  --color-danger-500: #ef4444;
+  --color-danger-600: #dc2626;
+  --color-danger-700: #b91c1c;
+
+  --color-surface: #ffffff;
+  --color-surface-alt: #f8fafc;
+  --color-surface-hover: #f1f5f9;
+  --color-border: #e2e8f0;
+  --color-border-light: #f1f5f9;
+  --color-text: #0f172a;
+  --color-text-secondary: #475569;
+  --color-text-tertiary: #94a3b8;
+
+  --color-dark-surface: #0a0a0f;
+  --color-dark-surface-alt: #111118;
+  --color-dark-surface-hover: #181825;
+  --color-dark-border: #1e1e2e;
+  --color-dark-border-light: #181825;
+  --color-dark-text: #f1f5f9;
+  --color-dark-text-secondary: #94a3b8;
+  --color-dark-text-tertiary: #64748b;
 
   --font-sans: "Plus Jakarta Sans", "Inter", "system-ui", "-apple-system", "BlinkMacSystemFont", "Segoe UI", "Roboto", "Helvetica Neue", "Arial", "sans-serif";
 }
 
 @layer base {
   body {
-    @apply bg-[#FAFBFC] text-zinc-900 font-sans antialiased dark:bg-[#09090B] dark:text-zinc-50;
+    @apply bg-surface-alt text-text font-sans antialiased dark:bg-dark-surface dark:text-dark-text;
+    scroll-behavior: smooth;
   }
 
-  /* Premium unified styling for all select inputs */
   select {
     appearance: none !important;
     -webkit-appearance: none !important;
     -moz-appearance: none !important;
-    background-image: url("data:image/svg+xml;charset=utf-8,%3Csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 20 20'%3E%3Cpath stroke='%2371717a' stroke-linecap='round' stroke-linejoin='round' stroke-width='1.5' d='m6 8 4 4 4-4'/%3E%3C/svg%3E") !important;
+    background-image: url("data:image/svg+xml;charset=utf-8,%3Csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 20 20'%3E%3Cpath stroke='%2394a3b8' stroke-linecap='round' stroke-linejoin='round' stroke-width='1.5' d='m6 8 4 4 4-4'/%3E%3C/svg%3E") !important;
     background-position: right 0.85rem center !important;
     background-repeat: no-repeat !important;
     background-size: 1.1rem !important;
@@ -36,25 +73,22 @@
     cursor: pointer !important;
   }
 
-  /* Dark mode chevron */
   .dark select {
-    background-image: url("data:image/svg+xml;charset=utf-8,%3Csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 20 20'%3E%3Cpath stroke='%23a1a1aa' stroke-linecap='round' stroke-linejoin='round' stroke-width='1.5' d='m6 8 4 4 4-4'/%3E%3C/svg%3E") !important;
+    background-image: url("data:image/svg+xml;charset=utf-8,%3Csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 20 20'%3E%3Cpath stroke='%2364748b' stroke-linecap='round' stroke-linejoin='round' stroke-width='1.5' d='m6 8 4 4 4-4'/%3E%3C/svg%3E") !important;
   }
 
-  /* Style option dropdown items to prevent transparency or low contrast bugs in dark mode */
   select option {
     background-color: #ffffff !important;
-    color: #18181b !important;
+    color: #0f172a !important;
     padding: 0.5rem !important;
     font-size: 0.875rem !important;
   }
 
   .dark select option {
-    background-color: #0c0c14 !important;
-    color: #f4f4f5 !important;
+    background-color: #0a0a0f !important;
+    color: #f1f5f9 !important;
   }
 
-  /* Hide number input spinners to prevent text truncation in numeric inputs */
   input[type="number"]::-webkit-inner-spin-button,
   input[type="number"]::-webkit-outer-spin-button {
     -webkit-appearance: none;
@@ -63,36 +97,32 @@
   input[type="number"] {
     -moz-appearance: textfield;
   }
+
+  ::selection {
+    @apply bg-primary-500/20 text-primary-700 dark:text-primary-300;
+  }
 }
 
-/* ==========================================================================
-   Custom Premium Modern Scrollbars (Global for Light & Dark Mode)
-   ========================================================================== */
-
-/* Firefox support */
 * {
   scrollbar-width: thin;
-  scrollbar-color: rgba(161, 161, 170, 0.35) transparent;
+  scrollbar-color: rgba(148, 163, 184, 0.3) transparent;
 }
 
 .dark * {
-  scrollbar-width: thin;
-  scrollbar-color: rgba(113, 113, 122, 0.35) transparent;
+  scrollbar-color: rgba(100, 116, 139, 0.25) transparent;
 }
 
-/* Chrome, Edge, Safari, Opera (WebKit) */
 ::-webkit-scrollbar {
-  width: 6px;
-  height: 6px;
+  width: 5px;
+  height: 5px;
 }
 
 ::-webkit-scrollbar-track {
   background: transparent;
-  border-radius: 9999px;
 }
 
 ::-webkit-scrollbar-thumb {
-  background: rgba(161, 161, 170, 0.4);
+  background: rgba(148, 163, 184, 0.3);
   border-radius: 9999px;
   border: 1px solid transparent;
   background-clip: padding-box;
@@ -100,28 +130,82 @@
 }
 
 ::-webkit-scrollbar-thumb:hover {
-  background: rgba(113, 113, 122, 0.7);
+  background: rgba(100, 116, 139, 0.5);
 }
 
-/* Dark mode WebKit Scrollbars */
 .dark ::-webkit-scrollbar-thumb {
-  background: rgba(63, 63, 70, 0.6);
-  border-radius: 9999px;
+  background: rgba(100, 116, 139, 0.2);
 }
 
 .dark ::-webkit-scrollbar-thumb:hover {
-  background: rgba(99, 102, 241, 0.75);
+  background: rgba(99, 102, 241, 0.5);
 }
 
 ::-webkit-scrollbar-corner {
   background: transparent;
 }
 
-/* Utility classes for hidden scrollbars if needed */
 .no-scrollbar::-webkit-scrollbar {
   display: none;
 }
 .no-scrollbar {
   -ms-overflow-style: none;
   scrollbar-width: none;
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+@keyframes slideUp {
+  from { opacity: 0; transform: translateY(8px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes slideDown {
+  from { opacity: 0; transform: translateY(-8px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes scaleIn {
+  from { opacity: 0; transform: scale(0.95); }
+  to { opacity: 1; transform: scale(1); }
+}
+
+@keyframes shimmer {
+  0% { background-position: -200% 0; }
+  100% { background-position: 200% 0; }
+}
+
+@keyframes pulse {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.5; }
+}
+
+.animate-fade-in {
+  animation: fadeIn 0.3s ease-out;
+}
+
+.animate-slide-up {
+  animation: slideUp 0.3s ease-out;
+}
+
+.animate-slide-down {
+  animation: slideDown 0.3s ease-out;
+}
+
+.animate-scale-in {
+  animation: scaleIn 0.2s ease-out;
+}
+
+.animate-shimmer {
+  background: linear-gradient(90deg, transparent 0%, rgba(148, 163, 184, 0.08) 50%, transparent 100%);
+  background-size: 200% 100%;
+  animation: shimmer 1.5s infinite;
+}
+
+.dark .animate-shimmer {
+  background: linear-gradient(90deg, transparent 0%, rgba(100, 116, 139, 0.08) 50%, transparent 100%);
+  background-size: 200% 100%;
 }

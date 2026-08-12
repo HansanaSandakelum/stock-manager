@@ -24,22 +24,22 @@ export function Modal({ isOpen, onClose, title, children, maxWidth = 'max-w-md' 
   if (!isOpen) return null;
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 animate-fade-in">
       <div 
-        className="absolute inset-0 bg-zinc-900/40 dark:bg-black/60 backdrop-blur-md" 
+        className="absolute inset-0 bg-black/30 dark:bg-black/50 backdrop-blur-sm" 
         onClick={onClose}
       />
-      <div className={`relative bg-white dark:bg-[#0c0c14] rounded-2xl shadow-xl w-full ${maxWidth} max-h-[90vh] flex flex-col animate-in zoom-in-95 duration-200 border border-zinc-100 dark:border-zinc-800/80`}>
-        <div className="flex items-center justify-between p-6 border-b border-zinc-100 dark:border-zinc-800/60">
-          <h2 className="text-lg font-semibold text-zinc-900 dark:text-zinc-100">{title}</h2>
+      <div className={`relative bg-white dark:bg-dark-surface rounded-2xl shadow-xl w-full ${maxWidth} max-h-[90vh] flex flex-col animate-scale-in border border-border dark:border-dark-border`}>
+        <div className="flex items-center justify-between p-6 border-b border-border dark:border-dark-border">
+          <h2 className="text-lg font-semibold text-text dark:text-dark-text">{title}</h2>
           <button 
             onClick={onClose}
-            className="text-zinc-400 hover:text-zinc-600 dark:hover:text-zinc-300 transition-colors p-1 rounded-lg hover:bg-zinc-50 dark:hover:bg-zinc-900 cursor-pointer active:scale-95"
+            className="text-text-tertiary hover:text-text dark:text-dark-text-tertiary dark:hover:text-dark-text transition-colors p-1.5 rounded-lg hover:bg-surface-hover dark:hover:bg-dark-surface-hover active:scale-95"
           >
             <X className="w-5 h-5" />
           </button>
         </div>
-        <div className="p-6 overflow-y-auto text-zinc-900 dark:text-zinc-100">
+        <div className="p-6 overflow-y-auto text-text dark:text-dark-text">
           {children}
         </div>
       </div>

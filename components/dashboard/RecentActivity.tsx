@@ -22,36 +22,42 @@ export function RecentActivity({ transactions }: { transactions: Transaction[] }
   return (
     <Card className="h-[400px] flex flex-col justify-between">
       <div className="flex-1 flex flex-col min-h-0">
-        <h3 className="text-base font-semibold text-zinc-800 dark:text-zinc-100 tracking-tight mb-4">Recent Activity</h3>
+        <h3 className="text-base font-semibold text-text dark:text-dark-text mb-4">Recent Activity</h3>
         
         {displayedTransactions.length === 0 ? (
-          <div className="flex-1 flex items-center justify-center text-zinc-400 dark:text-zinc-500 text-xs">
+          <div className="flex-1 flex items-center justify-center text-text-tertiary dark:text-dark-text-tertiary text-xs">
             No recent transactions
           </div>
         ) : (
-          <div className="space-y-2 flex-1 min-h-0 overflow-y-auto pr-0.5 scrollbar-thin">
+          <div className="space-y-1 flex-1 min-h-0 overflow-y-auto pr-0.5">
             {displayedTransactions.map((t) => (
-              <div key={t._id} className="flex items-center justify-between p-1 hover:bg-zinc-50/50 dark:hover:bg-zinc-900/10 rounded-xl transition-all duration-200">
-                <div className="flex items-center gap-3">
-                  <div className={`w-9 h-9 rounded-xl flex items-center justify-center border ${t.type === 'in' ? 'bg-emerald-50/40 text-emerald-600 border-emerald-100/30 dark:bg-emerald-950/10 dark:text-emerald-400 dark:border-emerald-900/20' : 'bg-rose-50/40 text-rose-600 border-rose-100/30 dark:bg-rose-950/10 dark:text-rose-400 dark:border-rose-900/20'}`}>
+              <div key={t._id} className="flex items-center justify-between p-2.5 rounded-xl hover:bg-surface-hover dark:hover:bg-dark-surface-hover transition-all duration-200">
+                <div className="flex items-center gap-3 min-w-0">
+                  <div className={`w-9 h-9 rounded-xl flex items-center justify-center shrink-0 ${
+                    t.type === 'in'
+                      ? 'bg-success-50 text-success-600 dark:bg-success-500/10 dark:text-success-400'
+                      : 'bg-danger-50 text-danger-600 dark:bg-danger-500/10 dark:text-danger-400'
+                  }`}>
                     {t.type === 'in' ? (
-                      <ArrowDownRight className="w-3.5 h-3.5" />
+                      <ArrowDownRight className="w-4 h-4" />
                     ) : (
-                      <ArrowUpRight className="w-3.5 h-3.5" />
+                      <ArrowUpRight className="w-4 h-4" />
                     )}
                   </div>
-                  <div>
-                    <p className="text-xs font-semibold text-zinc-800 dark:text-zinc-200 line-clamp-1">{t.product?.name || 'Deleted Product'}</p>
-                    <p className="text-[10px] text-zinc-400 dark:text-zinc-500 mt-0.5">
-                      {new Date(t.date).toLocaleDateString('en-US', { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' })} • {t.createdBy?.name || 'System'}
+                  <div className="min-w-0">
+                    <p className="text-xs font-semibold text-text dark:text-dark-text truncate">{t.product?.name || 'Deleted Product'}</p>
+                    <p className="text-[10px] text-text-tertiary dark:text-dark-text-tertiary mt-0.5">
+                      {new Date(t.date).toLocaleDateString('en-US', { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' })} &middot; {t.createdBy?.name || 'System'}
                     </p>
                   </div>
                 </div>
-                <div className="text-right flex flex-col items-end gap-1 shrink-0">
-                  <span className={`text-xs font-bold tracking-tight ${t.type === 'in' ? 'text-emerald-600 dark:text-emerald-400' : 'text-rose-600 dark:text-rose-400'}`}>
+                <div className="text-right flex flex-col items-end gap-1 shrink-0 ml-3">
+                  <span className={`text-xs font-bold tracking-tight ${
+                    t.type === 'in' ? 'text-success-600 dark:text-success-400' : 'text-danger-600 dark:text-danger-400'
+                  }`}>
                     {t.type === 'in' ? '+' : '-'}{t.quantity}
                   </span>
-                  <Badge variant={t.type === 'in' ? 'success' : 'danger'}>
+                  <Badge variant={t.type === 'in' ? 'success' : 'danger'} size="sm">
                     {t.type === 'in' ? 'In' : 'Out'}
                   </Badge>
                 </div>
@@ -62,9 +68,9 @@ export function RecentActivity({ transactions }: { transactions: Transaction[] }
       </div>
 
       {transactions.length > 0 && (
-        <div className="mt-3.5 pt-3.5 border-t border-zinc-100 dark:border-zinc-800/80">
+        <div className="mt-3 pt-3 border-t border-border dark:border-dark-border">
           <Link href="/transactions" className="w-full block">
-            <Button variant="secondary" className="w-full text-xs font-semibold py-2">
+            <Button variant="secondary" size="sm" className="w-full font-semibold">
               View More Transactions
             </Button>
           </Link>
@@ -73,4 +79,3 @@ export function RecentActivity({ transactions }: { transactions: Transaction[] }
     </Card>
   );
 }
-

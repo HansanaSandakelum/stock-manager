@@ -2,9 +2,11 @@ import mongoose, { Schema, Document } from 'mongoose';
 
 export interface ITransaction extends Document {
   product: mongoose.Types.ObjectId;
-  type: 'in' | 'out' | 'return' | 'free-issue';
+  type: 'in' | 'out' | 'return' | 'free-issue' | 'shop-issue' | 'shop-return';
   quantity: number;
   note?: string;
+  invoiceNumber?: string;
+  shop?: mongoose.Types.ObjectId;
   date: Date;
   createdBy?: mongoose.Types.ObjectId;
   createdAt: Date;
@@ -12,9 +14,11 @@ export interface ITransaction extends Document {
 
 const TransactionSchema: Schema = new Schema({
   product: { type: Schema.Types.ObjectId, ref: 'Product', required: true },
-  type: { type: String, enum: ['in', 'out', 'return', 'free-issue'], required: true },
+  type: { type: String, enum: ['in', 'out', 'return', 'free-issue', 'shop-issue', 'shop-return'], required: true },
   quantity: { type: Number, required: true, min: 1 },
   note: { type: String },
+  invoiceNumber: { type: String },
+  shop: { type: Schema.Types.ObjectId, ref: 'Shop' },
   date: { type: Date, default: Date.now },
   createdBy: { type: Schema.Types.ObjectId, ref: 'User' },
   createdAt: { type: Date, default: Date.now },

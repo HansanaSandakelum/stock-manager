@@ -25,27 +25,27 @@ export function StockChart({ data }: StockChartProps) {
   
   const isDark = theme === 'dark';
   
-  const gridColor = isDark ? '#27273a' : '#f3f4f6';
-  const axisColor = isDark ? '#52525b' : '#9ca3af';
-  const barInColor = '#6366f1'; // Modern Indigo accent
-  const barOutColor = '#f43f5e'; // Soft minimal Rose accent
+  const gridColor = isDark ? '#1e1e2e' : '#f1f5f9';
+  const axisColor = isDark ? '#64748b' : '#94a3b8';
+  const barInColor = '#6366f1';
+  const barOutColor = '#f43f5e';
   
-  const tooltipBg = isDark ? '#0c0c14' : '#ffffff';
-  const tooltipBorder = isDark ? '#1f1f2e' : '#f3f4f6';
-  const tooltipTextColor = isDark ? '#fafafa' : '#1f2937';
-  const cursorColor = isDark ? '#181825' : '#f9fafb';
+  const tooltipBg = isDark ? '#0a0a0f' : '#ffffff';
+  const tooltipBorder = isDark ? '#1e1e2e' : '#e2e8f0';
+  const tooltipTextColor = isDark ? '#f1f5f9' : '#0f172a';
+  const cursorColor = isDark ? '#111118' : '#f8fafc';
 
   if (!mounted) {
     return (
       <Card className="h-[400px] flex flex-col justify-center items-center">
-        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-zinc-900 dark:border-zinc-100" />
+        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary-600" />
       </Card>
     );
   }
 
   return (
     <Card className="p-6 flex flex-col">
-      <h3 className="text-lg font-semibold text-zinc-900 dark:text-zinc-100 mb-6">Stock Movement (Last 7 Days)</h3>
+      <h3 className="text-base font-semibold text-text dark:text-dark-text mb-6">Stock Movement (Last 7 Days)</h3>
       <div style={{ width: '100%', height: 300 }}>
         <ResponsiveContainer width="100%" height={300}>
           <BarChart data={data} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
@@ -67,7 +67,7 @@ export function StockChart({ data }: StockChartProps) {
             <Legend 
               iconType="circle" 
               wrapperStyle={{ paddingTop: '20px' }}
-              formatter={(value) => <span className="text-sm font-medium text-zinc-600 dark:text-zinc-400">{value}</span>}
+              formatter={(value) => <span className="text-sm font-medium text-text-secondary dark:text-dark-text-secondary">{value}</span>}
             />
             <Bar dataKey="in" name="Stock In" fill={barInColor} radius={[4, 4, 0, 0]} maxBarSize={40} />
             <Bar dataKey="out" name="Stock Out" fill={barOutColor} radius={[4, 4, 0, 0]} maxBarSize={40} />

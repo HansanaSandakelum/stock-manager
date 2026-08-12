@@ -5,6 +5,7 @@ import dbConnect from '@/lib/db';
 import Transaction from '@/models/Transaction';
 import Product from '@/models/Product';
 import User from '@/models/User';
+import Shop from '@/models/Shop';
 
 export async function GET(req: Request) {
   try {
@@ -14,6 +15,7 @@ export async function GET(req: Request) {
     const { searchParams } = new URL(req.url);
     const product = searchParams.get('product');
     const type = searchParams.get('type');
+    const shop = searchParams.get('shop');
     const dateFrom = searchParams.get('dateFrom');
     const dateTo = searchParams.get('dateTo');
     const page = parseInt(searchParams.get('page') || '1');
@@ -24,6 +26,7 @@ export async function GET(req: Request) {
     if (type) {
       query.type = type;
     }
+    if (shop) query.shop = shop;
     if (dateFrom || dateTo) {
       const dateFilter: Record<string, Date> = {};
       if (dateFrom) dateFilter.$gte = new Date(dateFrom);
@@ -36,6 +39,7 @@ export async function GET(req: Request) {
     // Ensure models are registered
     void User;
     void Product;
+    void Shop;
 
     const transactions = await Transaction.find(query)
       .populate('product', 'name sku')
@@ -68,7 +72,7 @@ export async function POST(req: Request) {
     if (!session) return NextResponse.json({ success: false, error: 'Unauthorized' }, { status: 401 });
 
     const body = await req.json();
-    const { product: productId, type, quantity, note, date } = body;
+    const { product: productId, type, quantity, note, invoiceNumber, date } = body;
 
     if (!productId || !type || !quantity || quantity <= 0) {
       return NextResponse.json({ success: false, error: 'Invalid transaction data' }, { status: 400 });
@@ -105,6 +109,7 @@ export async function POST(req: Request) {
       type,
       quantity,
       note,
+      invoiceNumber: invoiceNumber ? String(invoiceNumber).trim() : undefined,
       date: date ? new Date(date) : new Date(),
       createdBy: userId,
     });

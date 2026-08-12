@@ -27,7 +27,7 @@ export function Toaster() {
       setToasts((prev) => [...prev, toast]);
       setTimeout(() => {
         setToasts((prev) => prev.filter((t) => t.id !== toast.id));
-      }, 3000);
+      }, 4000);
     };
     return () => {
       addToastHandler = null;
@@ -35,19 +35,19 @@ export function Toaster() {
   }, []);
 
   return (
-    <div className="fixed top-4 right-4 z-50 flex flex-col gap-2">
+    <div className="fixed bottom-4 right-4 z-50 flex flex-col gap-2">
       {toasts.map((t) => (
         <div
           key={t.id}
-          className="flex items-center gap-3 p-4 bg-white dark:bg-zinc-900 rounded-xl shadow-lg border border-zinc-200 dark:border-zinc-800 animate-in slide-in-from-right-8 fade-in transition-all duration-300"
+          className="flex items-center gap-3 px-4 py-3 bg-white dark:bg-dark-surface rounded-xl shadow-lg border border-border dark:border-dark-border animate-slide-up min-w-[300px] max-w-[400px]"
         >
-          {t.type === 'success' && <CheckCircle className="w-5 h-5 text-green-500" />}
-          {t.type === 'error' && <AlertCircle className="w-5 h-5 text-red-500" />}
-          {t.type === 'info' && <Info className="w-5 h-5 text-zinc-900 dark:text-zinc-100" />}
-          <p className="text-sm font-medium text-zinc-800 dark:text-zinc-200">{t.message}</p>
+          {t.type === 'success' && <CheckCircle className="w-5 h-5 text-success-500 shrink-0" />}
+          {t.type === 'error' && <AlertCircle className="w-5 h-5 text-danger-500 shrink-0" />}
+          {t.type === 'info' && <Info className="w-5 h-5 text-primary-500 shrink-0" />}
+          <p className="text-sm font-medium text-text dark:text-dark-text flex-1">{t.message}</p>
           <button
             onClick={() => setToasts((prev) => prev.filter((toast) => toast.id !== t.id))}
-            className="ml-4 text-zinc-400 hover:text-zinc-600 dark:hover:text-zinc-300 transition-colors"
+            className="text-text-tertiary hover:text-text dark:text-dark-text-tertiary dark:hover:text-dark-text transition-colors shrink-0"
           >
             <X className="w-4 h-4" />
           </button>

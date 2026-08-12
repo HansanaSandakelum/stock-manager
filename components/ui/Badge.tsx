@@ -3,18 +3,24 @@ import React from 'react';
 interface BadgeProps {
   children: React.ReactNode;
   variant?: 'success' | 'warning' | 'danger' | 'default';
+  size?: 'sm' | 'md';
 }
 
-export function Badge({ children, variant = 'default' }: BadgeProps) {
+export function Badge({ children, variant = 'default', size = 'sm' }: BadgeProps) {
+  const sizes = {
+    sm: 'px-2 py-0.5 text-[10px]',
+    md: 'px-2.5 py-1 text-xs',
+  };
+
   const variants = {
-    success: 'bg-emerald-50 text-emerald-700 border border-emerald-100/60 dark:bg-emerald-950/20 dark:text-emerald-400 dark:border-emerald-900/30',
-    warning: 'bg-amber-50 text-amber-700 border border-amber-100/60 dark:bg-amber-950/20 dark:text-amber-400 dark:border-amber-900/30',
-    danger: 'bg-rose-50 text-rose-700 border border-rose-100/60 dark:bg-rose-950/20 dark:text-rose-400 dark:border-rose-900/30',
-    default: 'bg-zinc-50 text-zinc-600 border border-zinc-200/50 dark:bg-zinc-800/30 dark:text-zinc-400 dark:border-zinc-800/60',
+    success: 'bg-success-50 text-success-700 border-success-200/50 dark:bg-success-700/10 dark:text-success-400 dark:border-success-700/20',
+    warning: 'bg-warning-50 text-warning-700 border-warning-200/50 dark:bg-warning-700/10 dark:text-warning-400 dark:border-warning-700/20',
+    danger: 'bg-danger-50 text-danger-700 border-danger-200/50 dark:bg-danger-700/10 dark:text-danger-400 dark:border-danger-700/20',
+    default: 'bg-surface-alt text-text-tertiary border-border dark:bg-dark-surface-alt dark:text-dark-text-tertiary dark:border-dark-border',
   };
 
   return (
-    <span className={`inline-flex items-center justify-center whitespace-nowrap px-2.5 py-0.5 rounded-full text-[11px] font-semibold tracking-wide border ${variants[variant]}`}>
+    <span className={`inline-flex items-center justify-center whitespace-nowrap rounded-full font-semibold tracking-wide border ${sizes[size]} ${variants[variant]}`}>
       {children}
     </span>
   );
