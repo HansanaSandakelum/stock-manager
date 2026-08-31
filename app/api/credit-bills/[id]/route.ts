@@ -33,6 +33,11 @@ export async function PATCH(req: Request, { params }: { params: Promise<{ id: st
     const session = await getServerSession(authOptions);
     if (!session) return NextResponse.json({ success: false, error: 'Unauthorized' }, { status: 401 });
 
+    const role = (session.user as { role?: string }).role;
+    if (role === 'deliver') {
+      return NextResponse.json({ success: false, error: 'Forbidden: Deliver role is not permitted to edit credit bills or record payments' }, { status: 403 });
+    }
+
     const { id } = await params;
     const body = await req.json();
     const { paymentAmount, paymentNote, note, dueDate, forceStatus } = body;

@@ -93,6 +93,9 @@ function Pagination({ page, totalPages, total, pageSize, onChange }: {
 }
 
 export default function ReturnsPage() {
+  const { data: session } = useSession();
+  const role = (session?.user as any)?.role;
+
   const [activeTab, setActiveTab] = useState<'logs' | 'products'>('logs');
   const [returns, setReturns] = useState<any[]>([]);
   const [products, setProducts] = useState<any[]>([]);
@@ -109,8 +112,6 @@ export default function ReturnsPage() {
   const [productPage, setProductPage] = useState(1);
   const [productSearch, setProductSearch] = useState('');
   const [showOnlyReturned, setShowOnlyReturned] = useState(true);
-
-  const { data: session } = useSession();
 
   const [formData, setFormData] = useState({
     product: '',
@@ -199,6 +200,10 @@ export default function ReturnsPage() {
   };
 
   const updateStatus = async (id: string, newStatus: string) => {
+    if (role === 'deliver') {
+      toast('Deliver role is not permitted to edit returns', 'error');
+      return;
+    }
     if (!confirm(`Are you sure you want to mark this return as ${newStatus}?`)) return;
 
     try {
@@ -358,7 +363,9 @@ export default function ReturnsPage() {
                       <th className="px-3 sm:px-6 py-3 sm:py-4.5 font-semibold text-right">Quantity</th>
                       <th className="px-3 sm:px-6 py-3 sm:py-4.5 font-semibold hidden sm:table-cell">Reason</th>
                       <th className="px-3 sm:px-6 py-3 sm:py-4.5 font-semibold text-center">Status</th>
-                      <th className="px-3 sm:px-6 py-3 sm:py-4.5 font-semibold text-right">Actions</th>
+                      {role !== 'deliver' && (
+                        <th className="px-3 sm:px-6 py-3 sm:py-4.5 font-semibold text-right">Actions</th>
+                      )}
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-zinc-100 dark:divide-zinc-800/60">
@@ -388,27 +395,29 @@ export default function ReturnsPage() {
                             {r.status}
                           </Badge>
                         </td>
-                        <td className="px-3 sm:px-6 py-3 sm:py-4 text-right">
-                          {r.status === 'Pending' && (
-                            <div className="flex items-center justify-end gap-2">
-                              <button
-                                onClick={() => updateStatus(r._id, 'Restocked')}
-                                className="p-1.5 text-emerald-600 hover:bg-emerald-50 dark:hover:bg-emerald-900/20 rounded-lg transition-colors title='Store in Returns'"
-                              >
-                                <CheckCircle2 className="w-4 h-4" />
-                              </button>
-                              <button
-                                onClick={() => updateStatus(r._id, 'Discarded')}
-                                className="p-1.5 text-rose-600 hover:bg-rose-50 dark:hover:bg-rose-900/20 rounded-lg transition-colors title='Discard Item'"
-                              >
-                                <Trash2 className="w-4 h-4" />
-                              </button>
-                            </div>
-                          )}
-                          {r.status !== 'Pending' && (
-                            <span className="text-zinc-400 text-[10px] uppercase">Processed</span>
-                          )}
-                        </td>
+                        {role !== 'deliver' && (
+                          <td className="px-3 sm:px-6 py-3 sm:py-4 text-right">
+                            {r.status === 'Pending' && (
+                              <div className="flex items-center justify-end gap-2">
+                                <button
+                                  onClick={() => updateStatus(r._id, 'Restocked')}
+                                  className="p-1.5 text-emerald-600 hover:bg-emerald-50 dark:hover:bg-emerald-900/20 rounded-lg transition-colors title='Store in Returns'"
+                                >
+                                  <CheckCircle2 className="w-4 h-4" />
+                                </button>
+                                <button
+                                  onClick={() => updateStatus(r._id, 'Discarded')}
+                                  className="p-1.5 text-rose-600 hover:bg-rose-50 dark:hover:bg-rose-900/20 rounded-lg transition-colors title='Discard Item'"
+                                >
+                                  <Trash2 className="w-4 h-4" />
+                                </button>
+                              </div>
+                            )}
+                            {r.status !== 'Pending' && (
+                              <span className="text-zinc-400 text-[10px] uppercase">Processed</span>
+                            )}
+                          </td>
+                        )}
                       </tr>
                     ))}
                   </tbody>

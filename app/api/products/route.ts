@@ -65,6 +65,11 @@ export async function POST(req: Request) {
     const session = await getServerSession(authOptions);
     if (!session) return NextResponse.json({ success: false, error: 'Unauthorized' }, { status: 401 });
 
+    const role = (session.user as { role?: string }).role;
+    if (role === 'deliver') {
+      return NextResponse.json({ success: false, error: 'Forbidden: Deliver role is not permitted to create products' }, { status: 403 });
+    }
+
     const body = await req.json();
     await dbConnect();
 

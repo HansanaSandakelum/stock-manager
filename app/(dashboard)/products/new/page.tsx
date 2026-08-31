@@ -1,8 +1,24 @@
 'use client';
 
+import { useEffect } from 'react';
+import { useRouter } from 'next/navigation';
+import { useSession } from 'next-auth/react';
 import { ProductForm } from '@/components/products/ProductForm';
+import { toast } from '@/components/ui/Toast';
 
 export default function NewProductPage() {
+  const router = useRouter();
+  const { data: session, status: sessionStatus } = useSession();
+
+  useEffect(() => {
+    if (sessionStatus === 'loading') return;
+    const role = (session?.user as any)?.role;
+    if (role === 'deliver') {
+      toast('Access denied: Deliver role cannot add products', 'error');
+      router.push('/products');
+    }
+  }, [session, sessionStatus, router]);
+
   return (
     <div className="space-y-6">
       <div>

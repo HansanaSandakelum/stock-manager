@@ -225,7 +225,7 @@ export default function TransactionsPage() {
       setIsModalOpen(false);
       setFormData({
         product: '',
-        type: 'in',
+        type: role === 'deliver' ? 'out' : 'in',
         quantity: 1,
         note: '',
         date: new Date().toISOString().split('T')[0]
@@ -269,7 +269,10 @@ export default function TransactionsPage() {
           <Button onClick={downloadCSV} variant="secondary">
             <Download className="w-4 h-4" /> Export CSV
           </Button>
-          <Button onClick={() => setIsModalOpen(true)}>
+          <Button onClick={() => {
+            setFormData(prev => ({ ...prev, type: role === 'deliver' ? 'out' : 'in' }));
+            setIsModalOpen(true);
+          }}>
             <Plus className="w-4 h-4" /> New Transaction
           </Button>
         </div>
@@ -388,7 +391,7 @@ export default function TransactionsPage() {
           <div className="space-y-1.5">
             <label className="text-xs font-semibold text-zinc-500 dark:text-zinc-400 uppercase tracking-wide">Transaction Type</label>
             <div className="flex rounded-xl overflow-hidden border border-zinc-200 dark:border-zinc-800 bg-zinc-50 dark:bg-zinc-900/40 p-0.5">
-              {(['in', 'out'] as const).map(t => (
+              {(role === 'deliver' ? (['out'] as const) : (['in', 'out'] as const)).map(t => (
                 <button
                   key={t}
                   type="button"

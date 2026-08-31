@@ -16,6 +16,11 @@ export async function PATCH(
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
+    const role = (session.user as { role?: string }).role;
+    if (role === 'deliver') {
+      return NextResponse.json({ error: "Forbidden: Deliver role cannot update returns" }, { status: 403 });
+    }
+
     const { id } = await Promise.resolve(params);
     const body = await req.json();
     const { status } = body;
@@ -84,6 +89,11 @@ export async function DELETE(
     const session = await getServerSession(authOptions);
     if (!session) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
+
+    const role = (session.user as { role?: string }).role;
+    if (role === 'deliver') {
+      return NextResponse.json({ error: "Forbidden: Deliver role cannot delete returns" }, { status: 403 });
     }
 
     const { id } = await Promise.resolve(params);

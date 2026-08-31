@@ -71,8 +71,14 @@ export async function POST(req: Request) {
     const session = await getServerSession(authOptions);
     if (!session) return NextResponse.json({ success: false, error: 'Unauthorized' }, { status: 401 });
 
+    const role = (session.user as { role?: string }).role;
+
     const body = await req.json();
     const { product: productId, type, quantity, note, invoiceNumber, date } = body;
+
+    if (role === 'deliver' && type === 'in') {
+      return NextResponse.json({ success: false, error: 'Forbidden: Deliver role is not permitted to perform Stock In' }, { status: 403 });
+    }
 
     if (!productId || !type || !quantity || quantity <= 0) {
       return NextResponse.json({ success: false, error: 'Invalid transaction data' }, { status: 400 });

@@ -218,6 +218,10 @@ export default function StockHandlingPage() {
   }, []);
 
   const openDialog = (product: Product, type: "in" | "out") => {
+    if (role === "deliver" && type === "in") {
+      toast("Deliver role is not permitted to perform Stock In", "error");
+      return;
+    }
     setDialogSearch("");
     setDialog({
       open: true,
@@ -227,7 +231,7 @@ export default function StockHandlingPage() {
       invoiceNumber: "",
       note: "",
       date: new Date().toISOString().slice(0, 16),
-      isReturn: type === "in" && role === "deliver",
+      isReturn: false,
       saving: false,
       isManualSelect: false,
       shopId: "",
@@ -237,6 +241,10 @@ export default function StockHandlingPage() {
   };
 
   const openDialogNoProduct = (type: "in" | "out") => {
+    if (role === "deliver" && type === "in") {
+      toast("Deliver role is not permitted to perform Stock In", "error");
+      return;
+    }
     setDialogSearch("");
     setDialog({
       open: true,
@@ -246,7 +254,7 @@ export default function StockHandlingPage() {
       invoiceNumber: "",
       note: "",
       date: new Date().toISOString().slice(0, 16),
-      isReturn: type === "in" && role === "deliver",
+      isReturn: false,
       saving: false,
       isManualSelect: true,
       shopId: "",
@@ -536,13 +544,15 @@ export default function StockHandlingPage() {
           </p>
         </div>
         <div className="flex flex-wrap items-center gap-2 w-full sm:w-auto">
-          <button
-            onClick={() => openDialogNoProduct("in")}
-            className="flex-1 sm:flex-initial flex items-center justify-center gap-1.5 px-3.5 py-2 text-xs font-semibold text-white bg-emerald-600 hover:bg-emerald-500 rounded-xl shadow-sm hover:shadow-emerald-500/10 transition-all active:scale-95 cursor-pointer"
-          >
-            <ArrowDownToLine className="w-3.5 h-3.5" />
-            Stock In
-          </button>
+          {role !== "deliver" && (
+            <button
+              onClick={() => openDialogNoProduct("in")}
+              className="flex-1 sm:flex-initial flex items-center justify-center gap-1.5 px-3.5 py-2 text-xs font-semibold text-white bg-emerald-600 hover:bg-emerald-500 rounded-xl shadow-sm hover:shadow-emerald-500/10 transition-all active:scale-95 cursor-pointer"
+            >
+              <ArrowDownToLine className="w-3.5 h-3.5" />
+              Stock In
+            </button>
+          )}
           <button
             onClick={() => openDialogNoProduct("out")}
             className="flex-1 sm:flex-initial flex items-center justify-center gap-1.5 px-3.5 py-2 text-xs font-semibold text-white bg-rose-600 hover:bg-rose-500 rounded-xl shadow-sm hover:shadow-rose-500/10 transition-all active:scale-95 cursor-pointer"
@@ -729,17 +739,19 @@ export default function StockHandlingPage() {
                       {/* Stock In / Stock Out Buttons */}
                       <td className="px-4 py-2.5 w-36 sm:w-52 text-center">
                         <div className="flex items-center justify-center gap-2">
-                          <button
-                            id={`stock-in-${product._id}`}
-                            onClick={() => openDialog(product, "in")}
-                            className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-[11px] font-semibold transition-all active:scale-95 cursor-pointer
-                              bg-emerald-50 text-emerald-700 border border-emerald-200 hover:bg-emerald-100 hover:border-emerald-300 hover:shadow-sm hover:shadow-emerald-100
-                              dark:bg-emerald-950/20 dark:text-emerald-400 dark:border-emerald-800/40 dark:hover:bg-emerald-950/40 dark:hover:bg-emerald-700/50"
-                            aria-label={`Stock In ${product.name}`}
-                          >
-                            <ArrowDownToLine className="w-3 h-3" />
-                            <span className="hidden sm:inline">Stock </span>In
-                          </button>
+                          {role !== "deliver" && (
+                            <button
+                              id={`stock-in-${product._id}`}
+                              onClick={() => openDialog(product, "in")}
+                              className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-[11px] font-semibold transition-all active:scale-95 cursor-pointer
+                                bg-emerald-50 text-emerald-700 border border-emerald-200 hover:bg-emerald-100 hover:border-emerald-300 hover:shadow-sm hover:shadow-emerald-100
+                                dark:bg-emerald-950/20 dark:text-emerald-400 dark:border-emerald-800/40 dark:hover:bg-emerald-950/40 dark:hover:bg-emerald-700/50"
+                              aria-label={`Stock In ${product.name}`}
+                            >
+                              <ArrowDownToLine className="w-3 h-3" />
+                              <span className="hidden sm:inline">Stock </span>In
+                            </button>
+                          )}
                           <button
                             id={`stock-out-${product._id}`}
                             onClick={() => openDialog(product, "out")}
@@ -888,17 +900,19 @@ export default function StockHandlingPage() {
                     {/* Bottom row: Interactive Actions */}
                     <div className="flex items-center justify-between gap-2 pt-2 border-t border-zinc-100/50 dark:border-zinc-800/40">
                       <div className="flex items-center gap-2 flex-1">
-                        <button
-                          id={`mob-stock-in-${product._id}`}
-                          onClick={() => openDialog(product, "in")}
-                          className="flex-1 inline-flex items-center justify-center gap-1.5 py-2 rounded-xl text-xs font-semibold transition-all active:scale-95 cursor-pointer
-                            bg-emerald-50 text-emerald-700 border border-emerald-100 hover:bg-emerald-100
-                            dark:bg-emerald-950/20 dark:text-emerald-400 dark:border-emerald-900/30"
-                          aria-label={`Stock In ${product.name}`}
-                        >
-                          <ArrowDownToLine className="w-3.5 h-3.5" />
-                          In
-                        </button>
+                        {role !== "deliver" && (
+                          <button
+                            id={`mob-stock-in-${product._id}`}
+                            onClick={() => openDialog(product, "in")}
+                            className="flex-1 inline-flex items-center justify-center gap-1.5 py-2 rounded-xl text-xs font-semibold transition-all active:scale-95 cursor-pointer
+                              bg-emerald-50 text-emerald-700 border border-emerald-100 hover:bg-emerald-100
+                              dark:bg-emerald-950/20 dark:text-emerald-400 dark:border-emerald-900/30"
+                            aria-label={`Stock In ${product.name}`}
+                          >
+                            <ArrowDownToLine className="w-3.5 h-3.5" />
+                            In
+                          </button>
+                        )}
                         <button
                           id={`mob-stock-out-${product._id}`}
                           onClick={() => openDialog(product, "out")}

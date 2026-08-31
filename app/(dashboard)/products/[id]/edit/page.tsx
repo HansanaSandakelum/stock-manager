@@ -1,17 +1,28 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { useParams } from 'next/navigation';
+import { useParams, useRouter } from 'next/navigation';
+import { useSession } from 'next-auth/react';
 import { ProductForm } from '@/components/products/ProductForm';
 import { Skeleton } from '@/components/ui/Skeleton';
 import { toast } from '@/components/ui/Toast';
 
 export default function EditProductPage() {
   const params = useParams();
+  const router = useRouter();
+  const { data: session, status: sessionStatus } = useSession();
   const [product, setProduct] = useState(null);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
+    if (sessionStatus === 'loading') return;
+    const role = (session?.user as any)?.role;
+    if (role === 'deliver') {
+      toast('Access denied: Deliver role cannot edit products', 'error');
+      router.push('/products');
+      return;
+    }
+
     const fetchProduct = async () => {
       try {
         const res = await fetch(`/api/products/${params.id}`);
@@ -30,7 +41,7 @@ export default function EditProductPage() {
     };
 
     fetchProduct();
-  }, [params.id]);
+  }, [params.id, session, sessionStatus, router]);
 
   if (loading) {
     return <Skeleton className="h-[500px] w-full" />;

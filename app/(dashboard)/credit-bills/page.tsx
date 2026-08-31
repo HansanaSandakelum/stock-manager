@@ -180,6 +180,10 @@ export default function CreditBillsPage() {
 
   // Open Payment modal
   const openPaymentModal = (bill: CreditBill) => {
+    if (role === 'deliver') {
+      toast('Deliver role is not permitted to record payments or edit credit bills', 'error');
+      return;
+    }
     setSelectedBill(bill);
     setPaymentAmount("");
     setPaymentNote("");
@@ -772,14 +776,16 @@ export default function CreditBillsPage() {
                             >
                               <Eye className="w-4 h-4" />
                             </button>
-                            <button
-                              onClick={() => openPaymentModal(bill)}
-                              disabled={bill.status === "Paid"}
-                              className="p-1.5 text-zinc-400 hover:text-emerald-600 hover:bg-emerald-50 dark:hover:bg-emerald-950/30 rounded-xl transition-all disabled:opacity-30 disabled:hover:bg-transparent cursor-pointer"
-                              title="Record Payment"
-                            >
-                              <CreditCard className="w-4 h-4" />
-                            </button>
+                            {role !== "deliver" && (
+                              <button
+                                onClick={() => openPaymentModal(bill)}
+                                disabled={bill.status === "Paid"}
+                                className="p-1.5 text-zinc-400 hover:text-emerald-600 hover:bg-emerald-50 dark:hover:bg-emerald-950/30 rounded-xl transition-all disabled:opacity-30 disabled:hover:bg-transparent cursor-pointer"
+                                title="Record Payment"
+                              >
+                                <CreditCard className="w-4 h-4" />
+                              </button>
+                            )}
                           </div>
                         </td>
                       </tr>
@@ -901,14 +907,16 @@ export default function CreditBillsPage() {
                     <Eye className="w-3.5 h-3.5" />
                     Details
                   </button>
-                  <button
-                    onClick={() => openPaymentModal(bill)}
-                    disabled={bill.status === "Paid"}
-                    className="flex-1 py-2 text-xs font-bold text-white bg-emerald-600 hover:bg-emerald-500 disabled:bg-zinc-100 dark:disabled:bg-zinc-900/40 disabled:text-zinc-400 dark:disabled:text-zinc-500 disabled:border-transparent rounded-xl shadow-sm hover:shadow-md transition-all flex items-center justify-center gap-1.5 cursor-pointer active:scale-95 border border-transparent"
-                  >
-                    <CreditCard className="w-3.5 h-3.5" />
-                    Pay Bill
-                  </button>
+                  {role !== "deliver" && (
+                    <button
+                      onClick={() => openPaymentModal(bill)}
+                      disabled={bill.status === "Paid"}
+                      className="flex-1 py-2 text-xs font-bold text-white bg-emerald-600 hover:bg-emerald-500 disabled:bg-zinc-100 dark:disabled:bg-zinc-900/40 disabled:text-zinc-400 dark:disabled:text-zinc-500 disabled:border-transparent rounded-xl shadow-sm hover:shadow-md transition-all flex items-center justify-center gap-1.5 cursor-pointer active:scale-95 border border-transparent"
+                    >
+                      <CreditCard className="w-3.5 h-3.5" />
+                      Pay Bill
+                    </button>
+                  )}
                 </div>
               </div>
             );
@@ -1383,7 +1391,7 @@ export default function CreditBillsPage() {
               <Button variant="outline" className="w-full sm:flex-1" onClick={handlePrint}>
                 <Printer className="w-4 h-4 shrink-0" /> Print Invoice
               </Button>
-              {selectedBill.status !== "Paid" && (
+              {role !== "deliver" && selectedBill.status !== "Paid" && (
                 <Button
                   variant="primary"
                   className="w-full sm:flex-1"
