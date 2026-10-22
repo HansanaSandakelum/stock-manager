@@ -16,7 +16,9 @@ export async function GET(req: Request, { params }: { params: Promise<{ id: stri
     await dbConnect();
     void User;
 
-    const bill = await CreditBill.findById(id).populate('createdBy', 'name email');
+    const bill = await CreditBill.findById(id)
+      .populate('createdBy', 'name email')
+      .populate('paymentHistory.recordedBy', 'name');
     if (!bill) return NextResponse.json({ success: false, error: 'Bill not found' }, { status: 404 });
 
     return NextResponse.json({ success: true, data: bill });
@@ -27,7 +29,7 @@ export async function GET(req: Request, { params }: { params: Promise<{ id: stri
 }
 
 // ── PATCH /api/credit-bills/[id] ─────────────────────────────────────────────
-// Supports: record payment, update status, update note/dueDate
+// Supports: record payment, update status, update note/dueDate, update chequeStatus
 export async function PATCH(req: Request, { params }: { params: Promise<{ id: string }> }) {
   try {
     const session = await getServerSession(authOptions);
@@ -40,7 +42,18 @@ export async function PATCH(req: Request, { params }: { params: Promise<{ id: st
 
     const { id } = await params;
     const body = await req.json();
-    const { paymentAmount, paymentNote, note, dueDate, forceStatus } = body;
+    const {
+      paymentAmount,
+      paymentNote,
+      paymentMethod = 'Cash',
+      chequeNumber,
+      bankName,
+      chequeDate,
+      chequeStatus = 'Pending',
+      note,
+      dueDate,
+      forceStatus,
+    } = body;
 
     await dbConnect();
     void User;
@@ -50,14 +63,47 @@ export async function PATCH(req: Request, { params }: { params: Promise<{ id: st
 
     // Record a new payment
     if (paymentAmount && paymentAmount > 0) {
+      if (paymentMethod === 'Cheque' && (!chequeNumber || !chequeNumber.trim())) {
+        return NextResponse.json({ success: false, error: 'Cheque number is required for cheque payments' }, { status: 400 });
+      }
+
       const userId = (session.user as { id?: string }).id;
+      const isCheque = paymentMethod === 'Cheque';
+      const resolvedChequeDate = isCheque && chequeDate ? new Date(chequeDate) : (isCheque ? new Date() : undefined);
+
       bill.paymentHistory.push({
         amount: paymentAmount,
         date: new Date(),
-        note: paymentNote || '',
+        paymentMethod: paymentMethod || 'Cash',
+        chequeNumber: isCheque ? chequeNumber.trim() : undefined,
+        bankName: isCheque ? (bankName ? bankName.trim() : undefined) : undefined,
+        chequeDate: resolvedChequeDate,
+        chequeStatus: isCheque ? (chequeStatus || 'Pending') : undefined,
+        note: paymentNote || (isCheque ? `Cheque #${chequeNumber.trim()}${bankName ? ' (' + bankName.trim() + ')' : ''}` : ''),
         recordedBy: userId,
       });
       bill.amountPaid = Math.min(bill.grandTotal, (bill.amountPaid || 0) + paymentAmount);
+
+      if (isCheque) {
+        bill.paymentMethod = 'Cheque';
+        bill.chequeNumber = chequeNumber.trim();
+        bill.bankName = bankName ? bankName.trim() : undefined;
+        bill.chequeDate = resolvedChequeDate;
+        bill.chequeStatus = chequeStatus || 'Pending';
+      }
+    }
+
+    // Direct cheque status update
+    if (chequeStatus && (!paymentAmount || paymentAmount <= 0)) {
+      bill.chequeStatus = chequeStatus;
+      if (bill.paymentHistory && bill.paymentHistory.length > 0) {
+        for (let i = bill.paymentHistory.length - 1; i >= 0; i--) {
+          if (bill.paymentHistory[i].paymentMethod === 'Cheque') {
+            bill.paymentHistory[i].chequeStatus = chequeStatus;
+            break;
+          }
+        }
+      }
     }
 
     // Update optional fields

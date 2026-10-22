@@ -21,6 +21,15 @@ import {
   TrendingUp,
   TrendingDown,
   CheckCircle,
+  X,
+  Banknote,
+  Building2,
+  Hash,
+  BarChart3,
+  ChevronDown,
+  ChevronUp,
+  CalendarDays,
+  ArrowRight,
 } from "lucide-react";
 import { Card } from "@/components/ui/Card";
 import { Badge } from "@/components/ui/Badge";
@@ -30,7 +39,74 @@ import { Modal } from "@/components/ui/Modal";
 import { Button } from "@/components/ui/Button";
 import { Input } from "@/components/ui/Input";
 
+const SRI_LANKAN_BANKS = [
+  "Commercial Bank",
+  "Bank of Ceylon (BOC)",
+  "Hatton National Bank (HNB)",
+  "Sampath Bank",
+  "People's Bank",
+  "Nations Trust Bank (NTB)",
+  "Seylan Bank",
+  "National Development Bank (NDB)",
+  "DFCC Bank",
+  "Pan Asia Bank",
+  "Union Bank",
+  "Standard Chartered Bank",
+  "HSBC",
+  "Amana Bank",
+  "Cargills Bank",
+  "Sanasa Development Bank (SDB)",
+];
 
+interface MonthlyDetail {
+  monthKey: string;
+  label: string;
+  shortLabel: string;
+  year: number;
+  month: number;
+  startDate: string;
+  endDate: string;
+  isCurrent: boolean;
+  offset: number;
+  totalBills: number;
+  totalSales: number;
+  totalCollected: number;
+  outstanding: number;
+}
+
+interface MonthlyCombinedStats {
+  totalBills: number;
+  totalSales: number;
+  totalCollected: number;
+  outstanding: number;
+}
+
+const formatDateToInput = (d: Date) => {
+  const year = d.getFullYear();
+  const month = String(d.getMonth() + 1).padStart(2, "0");
+  const day = String(d.getDate()).padStart(2, "0");
+  return `${year}-${month}-${day}`;
+};
+
+const getCurrentMonthRange = () => {
+  const now = new Date();
+  const first = new Date(now.getFullYear(), now.getMonth(), 1);
+  const last = new Date(now.getFullYear(), now.getMonth() + 1, 0);
+  return {
+    start: formatDateToInput(first),
+    end: formatDateToInput(last),
+  };
+};
+
+const getLast3MonthsRange = () => {
+  const now = new Date();
+  const first = new Date(now.getFullYear(), now.getMonth() - 2, 1);
+  const last = new Date(now.getFullYear(), now.getMonth() + 1, 0);
+  return {
+    start: formatDateToInput(first),
+    end: formatDateToInput(last),
+  };
+};
 
 interface BillItem {
   product: string;
@@ -45,6 +121,11 @@ interface PaymentRecord {
   amount: number;
   date: string;
   note?: string;
+  paymentMethod?: "Cash" | "Cheque" | "Bank Transfer";
+  chequeNumber?: string;
+  bankName?: string;
+  chequeDate?: string;
+  chequeStatus?: "Pending" | "Deposited" | "Cleared" | "Bounced";
   recordedBy?: { name: string };
 }
 
@@ -59,6 +140,11 @@ interface CreditBill {
   discount: number;
   grandTotal: number;
   amountPaid: number;
+  paymentMethod?: "Cash" | "Cheque" | "Bank Transfer" | "Credit";
+  chequeNumber?: string;
+  bankName?: string;
+  chequeDate?: string;
+  chequeStatus?: "Pending" | "Deposited" | "Cleared" | "Bounced";
   status: "Pending" | "Partially Paid" | "Paid" | "Overdue";
   dueDate?: string;
   note?: string;
@@ -84,6 +170,8 @@ export default function CreditBillsPage() {
   const router = useRouter();
 
   // List view states
+  const currentMonthRange = getCurrentMonthRange();
+  const last3MonthsRange = getLast3MonthsRange();
   const [bills, setBills] = useState<CreditBill[]>([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
@@ -91,6 +179,9 @@ export default function CreditBillsPage() {
   const [statusFilter, setStatusFilter] = useState<
     "all" | "Pending" | "Partially Paid" | "Paid" | "Overdue"
   >("all");
+  const [startDate, setStartDate] = useState(currentMonthRange.start);
+  const [endDate, setEndDate] = useState(currentMonthRange.end);
+  const [dateType, setDateType] = useState<"createdAt" | "dueDate">("createdAt");
   const [page, setPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
   const [stats, setStats] = useState({
@@ -99,6 +190,13 @@ export default function CreditBillsPage() {
     totalPaid: 0,
     totalOutstanding: 0,
   });
+
+  // Monthly stats state
+  const [showLast3MonthsDetails, setShowLast3MonthsDetails] = useState(false);
+  const [monthlyDetails, setMonthlyDetails] = useState<MonthlyDetail[]>([]);
+  const [currentMonthStats, setCurrentMonthStats] = useState<MonthlyDetail | null>(null);
+  const [previous3MonthsList, setPrevious3MonthsList] = useState<MonthlyDetail[]>([]);
+  const [last3MonthsCombinedStats, setLast3MonthsCombinedStats] = useState<MonthlyCombinedStats | null>(null);
 
   // Modal visibility states
   const [isDetailOpen, setIsDetailOpen] = useState(false);
@@ -111,6 +209,11 @@ export default function CreditBillsPage() {
   // Payment form states
   const [paymentAmount, setPaymentAmount] = useState("");
   const [paymentNote, setPaymentNote] = useState("");
+  const [paymentMethod, setPaymentMethod] = useState<"Cash" | "Cheque">("Cash");
+  const [paymentChequeNumber, setPaymentChequeNumber] = useState("");
+  const [paymentBankName, setPaymentBankName] = useState("");
+  const [paymentChequeDate, setPaymentChequeDate] = useState(new Date().toISOString().slice(0, 10));
+  const [paymentChequeStatus, setPaymentChequeStatus] = useState<"Pending" | "Deposited" | "Cleared">("Pending");
   const [submittingPayment, setSubmittingPayment] = useState(false);
 
   // Import Old Bill form states
@@ -123,6 +226,10 @@ export default function CreditBillsPage() {
     amountPaid: "",
     discount: "",
     note: "",
+    paymentMethod: "Cash" as "Cash" | "Cheque",
+    chequeNumber: "",
+    bankName: "",
+    chequeDate: new Date().toISOString().slice(0, 10),
   });
   const [importItems, setImportItems] = useState<OldBillItem[]>([
     { productName: "", sku: "", quantity: "", unitPrice: "" },
@@ -141,6 +248,10 @@ export default function CreditBillsPage() {
           status: statusFilter,
           search,
         });
+        if (startDate) queryParams.set("startDate", startDate);
+        if (endDate) queryParams.set("endDate", endDate);
+        if (startDate || endDate) queryParams.set("dateType", dateType);
+
         const res = await fetch(`/api/credit-bills?${queryParams.toString()}`);
         const data = await res.json();
         if (data.success) {
@@ -148,6 +259,18 @@ export default function CreditBillsPage() {
           setTotalPages(data.pagination.pages || 1);
           if (data.stats) {
             setStats(data.stats);
+          }
+          if (data.monthlyDetails) {
+            setMonthlyDetails(data.monthlyDetails);
+          }
+          if (data.currentMonthStats) {
+            setCurrentMonthStats(data.currentMonthStats);
+          }
+          if (data.previous3MonthsList) {
+            setPrevious3MonthsList(data.previous3MonthsList);
+          }
+          if (data.last3MonthsCombinedStats) {
+            setLast3MonthsCombinedStats(data.last3MonthsCombinedStats);
           }
         }
       } catch (err) {
@@ -157,7 +280,7 @@ export default function CreditBillsPage() {
         setRefreshing(false);
       }
     },
-    [page, statusFilter, search]
+    [page, statusFilter, search, startDate, endDate, dateType]
   );
 
   useEffect(() => {
@@ -187,6 +310,11 @@ export default function CreditBillsPage() {
     setSelectedBill(bill);
     setPaymentAmount("");
     setPaymentNote("");
+    setPaymentMethod("Cash");
+    setPaymentChequeNumber("");
+    setPaymentBankName("");
+    setPaymentChequeDate(new Date().toISOString().slice(0, 10));
+    setPaymentChequeStatus("Pending");
     setIsPaymentOpen(true);
   };
 
@@ -206,6 +334,17 @@ export default function CreditBillsPage() {
       return;
     }
 
+    if (paymentMethod === "Cheque") {
+      if (!paymentChequeNumber.trim()) {
+        toast("Cheque number is required for cheque payments", "error");
+        return;
+      }
+      if (!paymentBankName.trim()) {
+        toast("Bank name is required for cheque payments", "error");
+        return;
+      }
+    }
+
     setSubmittingPayment(true);
     try {
       const res = await fetch(`/api/credit-bills/${selectedBill._id}`, {
@@ -214,6 +353,11 @@ export default function CreditBillsPage() {
         body: JSON.stringify({
           paymentAmount: amount,
           paymentNote: paymentNote || undefined,
+          paymentMethod,
+          chequeNumber: paymentMethod === "Cheque" ? paymentChequeNumber.trim() : undefined,
+          bankName: paymentMethod === "Cheque" ? paymentBankName.trim() : undefined,
+          chequeDate: paymentMethod === "Cheque" ? paymentChequeDate : undefined,
+          chequeStatus: paymentMethod === "Cheque" ? paymentChequeStatus : undefined,
         }),
       });
       const data = await res.json();
@@ -232,6 +376,29 @@ export default function CreditBillsPage() {
       toast(err.message, "error");
     } finally {
       setSubmittingPayment(false);
+    }
+  };
+
+  // Update Cheque Status
+  const handleUpdateChequeStatus = async (billId: string, newStatus: string) => {
+    try {
+      const res = await fetch(`/api/credit-bills/${billId}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ chequeStatus: newStatus }),
+      });
+      const data = await res.json();
+      if (data.success) {
+        toast(`Cheque status updated to ${newStatus}`, "success");
+        if (selectedBill && selectedBill._id === billId) {
+          viewBillDetails(billId);
+        }
+        fetchBills(true);
+      } else {
+        throw new Error(data.error || "Failed to update cheque status");
+      }
+    } catch (err: any) {
+      toast(err.message, "error");
     }
   };
 
@@ -271,6 +438,18 @@ export default function CreditBillsPage() {
       toast("Add at least one valid item", "error");
       return;
     }
+    const isImportCheque = importForm.paymentMethod === "Cheque" && Number(importForm.amountPaid) > 0;
+    if (isImportCheque) {
+      if (!importForm.chequeNumber.trim()) {
+        toast("Cheque number is required for cheque payment", "error");
+        return;
+      }
+      if (!importForm.bankName.trim()) {
+        toast("Bank name is required for cheque payment", "error");
+        return;
+      }
+    }
+
     setSubmittingImport(true);
     try {
       const res = await fetch("/api/credit-bills", {
@@ -285,6 +464,10 @@ export default function CreditBillsPage() {
           amountPaid: Number(importForm.amountPaid) || 0,
           discount: Number(importForm.discount) || 0,
           note: importForm.note.trim() || undefined,
+          paymentMethod: Number(importForm.amountPaid) > 0 ? importForm.paymentMethod : "Credit",
+          chequeNumber: isImportCheque ? importForm.chequeNumber.trim() : undefined,
+          bankName: isImportCheque ? importForm.bankName.trim() : undefined,
+          chequeDate: isImportCheque ? importForm.chequeDate : undefined,
           isHistorical: true,
           items: validItems.map((it) => ({
             productName: it.productName.trim(),
@@ -307,6 +490,10 @@ export default function CreditBillsPage() {
         amountPaid: "",
         discount: "",
         note: "",
+        paymentMethod: "Cash",
+        chequeNumber: "",
+        bankName: "",
+        chequeDate: new Date().toISOString().slice(0, 10),
       });
       setImportItems([{ productName: "", sku: "", quantity: "", unitPrice: "" }]);
       fetchBills(true);
@@ -485,11 +672,99 @@ export default function CreditBillsPage() {
   // Reset page when filter or search changes
   useEffect(() => {
     setPage(1);
-  }, [statusFilter, search]);
+  }, [statusFilter, search, startDate, endDate, dateType]);
 
   const handlePrint = () => {
     window.print();
   };
+
+  // Active period state checks
+  const isCurrentMonthActive =
+    startDate === currentMonthRange.start && endDate === currentMonthRange.end;
+  const isLast3MonthsActive =
+    startDate === last3MonthsRange.start && endDate === last3MonthsRange.end;
+  const isAllTimeActive = !startDate && !endDate;
+  const isFilterActive = search.trim() !== "" || statusFilter !== "all";
+
+  // Calculate stats to display in the 3 cards
+  const displayStats = (() => {
+    if (isFilterActive) {
+      return {
+        title: "Filtered Results",
+        badge: "Filtered",
+        totalBills: stats.totalBills,
+        totalSales: stats.totalGrand,
+        totalCollected: stats.totalPaid,
+        outstanding: stats.totalOutstanding,
+      };
+    }
+    if (isCurrentMonthActive) {
+      return {
+        title: currentMonthStats?.label || "Current Month",
+        badge: "Current Month",
+        totalBills: currentMonthStats?.totalBills ?? stats.totalBills,
+        totalSales: currentMonthStats?.totalSales ?? stats.totalGrand,
+        totalCollected: currentMonthStats?.totalCollected ?? stats.totalPaid,
+        outstanding: currentMonthStats?.outstanding ?? stats.totalOutstanding,
+      };
+    }
+    if (isLast3MonthsActive) {
+      return {
+        title: "Last 3 Months Combined",
+        badge: "Last 3 Months",
+        totalBills: last3MonthsCombinedStats?.totalBills ?? stats.totalBills,
+        totalSales: last3MonthsCombinedStats?.totalSales ?? stats.totalGrand,
+        totalCollected: last3MonthsCombinedStats?.totalCollected ?? stats.totalPaid,
+        outstanding: last3MonthsCombinedStats?.outstanding ?? stats.totalOutstanding,
+      };
+    }
+    if (isAllTimeActive) {
+      return {
+        title: "All Time Cumulative",
+        badge: "All Time",
+        totalBills: stats.totalBills,
+        totalSales: stats.totalGrand,
+        totalCollected: stats.totalPaid,
+        outstanding: stats.totalOutstanding,
+      };
+    }
+    return {
+      title: `${startDate} to ${endDate}`,
+      badge: "Custom Range",
+      totalBills: stats.totalBills,
+      totalSales: stats.totalGrand,
+      totalCollected: stats.totalPaid,
+      outstanding: stats.totalOutstanding,
+    };
+  })();
+
+  // Fallback 3-month list if not yet loaded from backend
+  const display3MonthsList: MonthlyDetail[] =
+    previous3MonthsList.length > 0
+      ? previous3MonthsList
+      : [1, 2, 3].map((offset) => {
+          const d = new Date();
+          d.setMonth(d.getMonth() - offset);
+          const yr = d.getFullYear();
+          const mth = d.getMonth() + 1;
+          const firstDay = new Date(yr, mth - 1, 1);
+          const lastDay = new Date(yr, mth, 0);
+          return {
+            monthKey: `${yr}-${String(mth).padStart(2, "0")}`,
+            label: d.toLocaleString("en-US", { month: "long", year: "numeric" }),
+            shortLabel: d.toLocaleString("en-US", { month: "short" }),
+            year: yr,
+            month: mth,
+            startDate: formatDateToInput(firstDay),
+            endDate: formatDateToInput(lastDay),
+            isCurrent: false,
+            offset,
+            totalBills: 0,
+            totalSales: 0,
+            totalCollected: 0,
+            outstanding: 0,
+          };
+        });
 
   return (
     <div className="space-y-4">
@@ -562,69 +837,314 @@ export default function CreditBillsPage() {
         </div>
       </div>
 
-      {/* Stats row */}
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
-        {[
-          {
-            label: "Total Invoices",
-            value: stats.totalBills,
-            cls: "text-zinc-950 dark:text-zinc-50",
-            bg: "bg-white dark:bg-[#0c0c14] border-zinc-100 dark:border-zinc-800/80 hover:border-zinc-200 dark:hover:border-zinc-700",
-            icon: <Receipt className="w-4 h-4 sm:w-5 h-5 text-zinc-500 dark:text-zinc-400" />,
-            iconBg: "bg-zinc-50 dark:bg-zinc-900/50 border-zinc-100 dark:border-zinc-800/50",
-          },
-          {
-            label: "Total Sales",
-            value: `Rs. ${stats.totalGrand.toLocaleString(undefined, {
-              minimumFractionDigits: 2,
-              maximumFractionDigits: 2,
-            })}`,
-            cls: "text-indigo-600 dark:text-indigo-400",
-            bg: "bg-white dark:bg-[#0c0c14] border-indigo-100/50 dark:border-indigo-900/20 hover:border-indigo-200 dark:hover:border-indigo-800/60 shadow-[0_4px_20px_rgba(99,102,241,0.01)]",
-            icon: <TrendingUp className="w-4 h-4 sm:w-5 h-5 text-indigo-600 dark:text-indigo-400" />,
-            iconBg: "bg-indigo-50/50 dark:bg-indigo-950/20 border-indigo-100/40 dark:border-indigo-900/20",
-          },
-          {
-            label: "Total Collected",
-            value: `Rs. ${stats.totalPaid.toLocaleString(undefined, {
-              minimumFractionDigits: 2,
-              maximumFractionDigits: 2,
-            })}`,
-            cls: "text-emerald-600 dark:text-emerald-400",
-            bg: "bg-white dark:bg-[#0c0c14] border-emerald-100/50 dark:border-emerald-900/20 hover:border-emerald-200 dark:hover:border-emerald-800/60 shadow-[0_4px_20px_rgba(16,185,129,0.01)]",
-            icon: <CheckCircle className="w-4 h-4 sm:w-5 h-5 text-emerald-600 dark:text-emerald-400" />,
-            iconBg: "bg-emerald-50/50 dark:bg-emerald-950/20 border-emerald-100/40 dark:border-emerald-900/20",
-          },
-          {
-            label: "Outstanding",
-            value: `Rs. ${stats.totalOutstanding.toLocaleString(undefined, {
-              minimumFractionDigits: 2,
-              maximumFractionDigits: 2,
-            })}`,
-            cls: "text-rose-600 dark:text-rose-400",
-            bg: "bg-white dark:bg-[#0c0c14] border-rose-100/50 dark:border-rose-900/20 hover:border-rose-200 dark:hover:border-rose-800/60 shadow-[0_4px_20px_rgba(244,63,94,0.01)]",
-            icon: <TrendingDown className="w-4 h-4 sm:w-5 h-5 text-rose-600 dark:text-rose-400" />,
-            iconBg: "bg-rose-50/50 dark:bg-rose-950/20 border-rose-100/40 dark:border-rose-900/20",
-          },
-        ].map((s) => (
-          <div
-            key={s.label}
-            className={`p-3 sm:p-4 rounded-2xl border ${s.bg} flex items-center justify-between shadow-[0_8px_30px_rgb(0,0,0,0.008),0_1px_2px_rgb(0,0,0,0.006)] hover:shadow-[0_12px_35px_rgb(0,0,0,0.015),0_1px_3px_rgb(0,0,0,0.01)] hover:-translate-y-0.5 transition-all duration-300`}
-          >
-            <div className="space-y-1 sm:space-y-1.5 min-w-0">
-              <p className="text-[9px] sm:text-[10px] font-bold text-zinc-400 dark:text-zinc-550 uppercase tracking-wider truncate">
-                {s.label}
-              </p>
-              <p className={`text-xs sm:text-lg font-black tabular-nums tracking-tight truncate ${s.cls}`}>
-                {s.value}
-              </p>
+      {/* Period & Filter Control Bar */}
+      <div className="flex flex-col md:flex-row md:items-center justify-between gap-3 bg-white dark:bg-[#0c0c14] p-3.5 sm:p-4 rounded-2xl border border-zinc-100 dark:border-zinc-800/80 shadow-[0_8px_30px_rgb(0,0,0,0.01)]">
+        <div className="flex items-center gap-2.5">
+          <div className="flex items-center justify-center p-2 rounded-xl bg-indigo-50 dark:bg-indigo-950/40 text-indigo-600 dark:text-indigo-400 border border-indigo-100/80 dark:border-indigo-900/30">
+            <BarChart3 className="w-4 h-4" />
+          </div>
+          <div>
+            <div className="flex items-center gap-2">
+              <h2 className="text-xs sm:text-sm font-bold text-zinc-900 dark:text-zinc-100">
+                Credit Summary
+              </h2>
+              <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-indigo-50 dark:bg-indigo-950/60 text-indigo-700 dark:text-indigo-300 border border-indigo-200/50 dark:border-indigo-800/50">
+                {displayStats.badge}: {displayStats.title}
+              </span>
             </div>
-            <div className={`flex items-center justify-center p-1.5 sm:p-2.5 rounded-xl border ${s.iconBg} shrink-0 shadow-sm ml-1.5`}>
-              {s.icon}
+            <p className="text-[11px] text-zinc-500 dark:text-zinc-400">
+              {displayStats.totalBills} bill{displayStats.totalBills === 1 ? "" : "s"} recorded in this period
+            </p>
+          </div>
+        </div>
+
+        <div className="flex flex-wrap items-center gap-2">
+          {/* Quick period switcher pills */}
+          <div className="flex items-center bg-zinc-100/80 dark:bg-zinc-900/80 p-1 rounded-xl border border-zinc-200/60 dark:border-zinc-800/80 text-xs font-semibold">
+            <button
+              type="button"
+              onClick={() => {
+                const r = getCurrentMonthRange();
+                setStartDate(r.start);
+                setEndDate(r.end);
+              }}
+              className={`px-3 py-1 rounded-lg transition-all cursor-pointer text-xs ${
+                isCurrentMonthActive
+                  ? "bg-white dark:bg-zinc-800 text-indigo-600 dark:text-indigo-300 font-bold shadow-xs"
+                  : "text-zinc-600 dark:text-zinc-400 hover:text-zinc-900 dark:hover:text-zinc-200"
+              }`}
+            >
+              Current Month
+            </button>
+            <button
+              type="button"
+              onClick={() => {
+                const r = getLast3MonthsRange();
+                setStartDate(r.start);
+                setEndDate(r.end);
+              }}
+              className={`px-3 py-1 rounded-lg transition-all cursor-pointer text-xs ${
+                isLast3MonthsActive
+                  ? "bg-white dark:bg-zinc-800 text-indigo-600 dark:text-indigo-300 font-bold shadow-xs"
+                  : "text-zinc-600 dark:text-zinc-400 hover:text-zinc-900 dark:hover:text-zinc-200"
+              }`}
+            >
+              Last 3 Months
+            </button>
+            <button
+              type="button"
+              onClick={() => {
+                setStartDate("");
+                setEndDate("");
+              }}
+              className={`px-3 py-1 rounded-lg transition-all cursor-pointer text-xs ${
+                isAllTimeActive
+                  ? "bg-white dark:bg-zinc-800 text-indigo-600 dark:text-indigo-300 font-bold shadow-xs"
+                  : "text-zinc-600 dark:text-zinc-400 hover:text-zinc-900 dark:hover:text-zinc-200"
+              }`}
+            >
+              All Time
+            </button>
+          </div>
+
+          {/* Toggle Last 3 Months Details */}
+          <button
+            type="button"
+            onClick={() => setShowLast3MonthsDetails((prev) => !prev)}
+            className={`flex items-center gap-1.5 px-3 py-1.5 text-xs font-bold rounded-xl border transition-all cursor-pointer active:scale-95 ${
+              showLast3MonthsDetails
+                ? "bg-indigo-600 text-white border-indigo-600 shadow-sm shadow-indigo-500/20"
+                : "bg-indigo-50 dark:bg-indigo-950/40 text-indigo-600 dark:text-indigo-300 border-indigo-200 dark:border-indigo-800/60 hover:bg-indigo-100 dark:hover:bg-indigo-950/70"
+            }`}
+          >
+            <CalendarDays className="w-3.5 h-3.5" />
+            <span>{showLast3MonthsDetails ? "Hide 3 Months Details" : "Show Last 3 Months Details"}</span>
+            {showLast3MonthsDetails ? (
+              <ChevronUp className="w-3.5 h-3.5" />
+            ) : (
+              <ChevronDown className="w-3.5 h-3.5" />
+            )}
+          </button>
+        </div>
+      </div>
+
+      {/* Stats row - ONLY 3 CARDS: Total Sales, Total Collected, Outstanding */}
+      <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 sm:gap-4">
+        {/* Card 1: Total Sales */}
+        <div className="p-4 sm:p-5 rounded-2xl border border-indigo-100/70 dark:border-indigo-900/30 bg-gradient-to-br from-white via-indigo-50/20 to-white dark:from-[#0c0c14] dark:via-indigo-950/15 dark:to-[#0c0c14] shadow-[0_8px_30px_rgb(99,102,241,0.03),0_1px_2px_rgb(0,0,0,0.01)] hover:shadow-[0_12px_35px_rgb(99,102,241,0.06)] hover:-translate-y-0.5 transition-all duration-300">
+          <div className="flex items-center justify-between mb-3">
+            <span className="text-[10px] sm:text-[11px] font-bold text-zinc-500 dark:text-zinc-400 uppercase tracking-wider">
+              Total Sales
+            </span>
+            <div className="p-2 sm:p-2.5 rounded-xl bg-indigo-50 dark:bg-indigo-950/40 text-indigo-600 dark:text-indigo-400 border border-indigo-100/80 dark:border-indigo-900/30">
+              <TrendingUp className="w-4 h-4 sm:w-5 sm:h-5" />
             </div>
           </div>
-        ))}
+          <p className="text-lg sm:text-2xl font-black text-indigo-600 dark:text-indigo-400 tracking-tight tabular-nums">
+            Rs. {displayStats.totalSales.toLocaleString(undefined, {
+              minimumFractionDigits: 2,
+              maximumFractionDigits: 2,
+            })}
+          </p>
+          <div className="flex items-center justify-between mt-2.5 pt-2.5 border-t border-zinc-100 dark:border-zinc-800/60 text-[11px] text-zinc-500 dark:text-zinc-400">
+            <span>{displayStats.badge}</span>
+            <span className="font-semibold text-zinc-700 dark:text-zinc-300">
+              {displayStats.totalBills} {displayStats.totalBills === 1 ? "invoice" : "invoices"}
+            </span>
+          </div>
+        </div>
+
+        {/* Card 2: Total Collected */}
+        <div className="p-4 sm:p-5 rounded-2xl border border-emerald-100/70 dark:border-emerald-900/30 bg-gradient-to-br from-white via-emerald-50/20 to-white dark:from-[#0c0c14] dark:via-emerald-950/15 dark:to-[#0c0c14] shadow-[0_8px_30px_rgb(16,185,129,0.03),0_1px_2px_rgb(0,0,0,0.01)] hover:shadow-[0_12px_35px_rgb(16,185,129,0.06)] hover:-translate-y-0.5 transition-all duration-300">
+          <div className="flex items-center justify-between mb-3">
+            <span className="text-[10px] sm:text-[11px] font-bold text-zinc-500 dark:text-zinc-400 uppercase tracking-wider">
+              Total Collected
+            </span>
+            <div className="p-2 sm:p-2.5 rounded-xl bg-emerald-50 dark:bg-emerald-950/40 text-emerald-600 dark:text-emerald-400 border border-emerald-100/80 dark:border-emerald-900/30">
+              <CheckCircle className="w-4 h-4 sm:w-5 sm:h-5" />
+            </div>
+          </div>
+          <p className="text-lg sm:text-2xl font-black text-emerald-600 dark:text-emerald-400 tracking-tight tabular-nums">
+            Rs. {displayStats.totalCollected.toLocaleString(undefined, {
+              minimumFractionDigits: 2,
+              maximumFractionDigits: 2,
+            })}
+          </p>
+          <div className="flex items-center justify-between mt-2.5 pt-2.5 border-t border-zinc-100 dark:border-zinc-800/60 text-[11px] text-zinc-500 dark:text-zinc-400">
+            <span>Collection Rate</span>
+            <span className="font-bold text-emerald-600 dark:text-emerald-400">
+              {displayStats.totalSales > 0
+                ? `${Math.min(100, Math.round((displayStats.totalCollected / displayStats.totalSales) * 100))}%`
+                : "0%"}
+            </span>
+          </div>
+        </div>
+
+        {/* Card 3: Outstanding */}
+        <div className="p-4 sm:p-5 rounded-2xl border border-rose-100/70 dark:border-rose-900/30 bg-gradient-to-br from-white via-rose-50/20 to-white dark:from-[#0c0c14] dark:via-rose-950/15 dark:to-[#0c0c14] shadow-[0_8px_30px_rgb(244,63,94,0.03),0_1px_2px_rgb(0,0,0,0.01)] hover:shadow-[0_12px_35px_rgb(244,63,94,0.06)] hover:-translate-y-0.5 transition-all duration-300">
+          <div className="flex items-center justify-between mb-3">
+            <span className="text-[10px] sm:text-[11px] font-bold text-zinc-500 dark:text-zinc-400 uppercase tracking-wider">
+              Outstanding
+            </span>
+            <div className="p-2 sm:p-2.5 rounded-xl bg-rose-50 dark:bg-rose-950/40 text-rose-600 dark:text-rose-400 border border-rose-100/80 dark:border-rose-900/30">
+              <TrendingDown className="w-4 h-4 sm:w-5 sm:h-5" />
+            </div>
+          </div>
+          <p className="text-lg sm:text-2xl font-black text-rose-600 dark:text-rose-400 tracking-tight tabular-nums">
+            Rs. {displayStats.outstanding.toLocaleString(undefined, {
+              minimumFractionDigits: 2,
+              maximumFractionDigits: 2,
+            })}
+          </p>
+          <div className="flex items-center justify-between mt-2.5 pt-2.5 border-t border-zinc-100 dark:border-zinc-800/60 text-[11px] text-zinc-500 dark:text-zinc-400">
+            <span>Pending Balance</span>
+            <span className="font-bold text-rose-600 dark:text-rose-400">
+              {displayStats.totalSales > 0
+                ? `${Math.max(0, Math.round((displayStats.outstanding / displayStats.totalSales) * 100))}% unpaid`
+                : "0% unpaid"}
+            </span>
+          </div>
+        </div>
       </div>
+
+      {/* Expandable Section: Last 3 Months Details */}
+      {showLast3MonthsDetails && (
+        <div className="p-4 sm:p-5 rounded-2xl bg-white dark:bg-[#0c0c14] border border-indigo-100 dark:border-indigo-950/60 shadow-[0_10px_35px_rgba(99,102,241,0.04)] space-y-4 animate-in fade-in slide-in-from-top-2 duration-300">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-3 border-b border-zinc-100 dark:border-zinc-800/70">
+            <div>
+              <div className="flex items-center gap-2">
+                <CalendarDays className="w-4 h-4 text-indigo-600 dark:text-indigo-400" />
+                <h3 className="text-sm font-bold text-zinc-900 dark:text-zinc-100">
+                  Last 3 Months Performance Details
+                </h3>
+              </div>
+              <p className="text-xs text-zinc-500 dark:text-zinc-400 mt-0.5">
+                Month-by-month analysis of Total Sales, Total Collected, and Outstanding balances
+              </p>
+            </div>
+            {last3MonthsCombinedStats && (
+              <div className="flex flex-wrap items-center gap-2 text-xs">
+                <div className="bg-zinc-50 dark:bg-zinc-900 px-3 py-1.5 rounded-xl border border-zinc-200/60 dark:border-zinc-800">
+                  <span className="text-zinc-500 dark:text-zinc-400">3M Sales: </span>
+                  <span className="font-bold text-indigo-600 dark:text-indigo-400">
+                    Rs. {last3MonthsCombinedStats.totalSales.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                  </span>
+                </div>
+                <div className="bg-zinc-50 dark:bg-zinc-900 px-3 py-1.5 rounded-xl border border-zinc-200/60 dark:border-zinc-800">
+                  <span className="text-zinc-500 dark:text-zinc-400">3M Collected: </span>
+                  <span className="font-bold text-emerald-600 dark:text-emerald-400">
+                    Rs. {last3MonthsCombinedStats.totalCollected.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                  </span>
+                </div>
+                <div className="bg-zinc-50 dark:bg-zinc-900 px-3 py-1.5 rounded-xl border border-zinc-200/60 dark:border-zinc-800">
+                  <span className="text-zinc-500 dark:text-zinc-400">3M Outstanding: </span>
+                  <span className="font-bold text-rose-600 dark:text-rose-400">
+                    Rs. {last3MonthsCombinedStats.outstanding.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                  </span>
+                </div>
+              </div>
+            )}
+          </div>
+
+          {/* Cards for each of the 3 previous months */}
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-3.5">
+            {display3MonthsList.map((m, idx) => {
+              const collectionPct =
+                m.totalSales > 0 ? Math.min(100, Math.round((m.totalCollected / m.totalSales) * 100)) : 0;
+              const isMonthFiltered = startDate === m.startDate && endDate === m.endDate;
+
+              return (
+                <div
+                  key={m.monthKey}
+                  className={`p-4 rounded-xl border transition-all ${
+                    isMonthFiltered
+                      ? "border-indigo-500 ring-2 ring-indigo-500/20 bg-indigo-50/20 dark:bg-indigo-950/20 shadow-sm"
+                      : "border-zinc-200/70 dark:border-zinc-800/80 bg-zinc-50/40 dark:bg-zinc-900/30 hover:border-zinc-300 dark:hover:border-zinc-700"
+                  }`}
+                >
+                  <div className="flex items-center justify-between mb-3">
+                    <div>
+                      <h4 className="text-xs font-bold text-zinc-900 dark:text-zinc-100">
+                        {m.label}
+                      </h4>
+                      <p className="text-[10px] text-zinc-400 dark:text-zinc-500">
+                        {idx === 0 ? "Previous Month" : `${idx + 1} Months Ago`} • {m.totalBills} bill{m.totalBills === 1 ? "" : "s"}
+                      </p>
+                    </div>
+                    <span className="text-[10px] font-semibold px-2 py-0.5 rounded-md bg-zinc-100 dark:bg-zinc-800 text-zinc-600 dark:text-zinc-300">
+                      {m.shortLabel} {m.year}
+                    </span>
+                  </div>
+
+                  <div className="space-y-2 text-xs">
+                    <div className="flex items-center justify-between">
+                      <span className="text-zinc-500 dark:text-zinc-400">Total Sales:</span>
+                      <span className="font-bold text-indigo-600 dark:text-indigo-400 tabular-nums">
+                        Rs. {m.totalSales.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                      </span>
+                    </div>
+
+                    <div className="flex items-center justify-between">
+                      <span className="text-zinc-500 dark:text-zinc-400">Total Collected:</span>
+                      <span className="font-bold text-emerald-600 dark:text-emerald-400 tabular-nums">
+                        Rs. {m.totalCollected.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                      </span>
+                    </div>
+
+                    <div className="flex items-center justify-between">
+                      <span className="text-zinc-500 dark:text-zinc-400">Outstanding:</span>
+                      <span className="font-bold text-rose-600 dark:text-rose-400 tabular-nums">
+                        Rs. {m.outstanding.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                      </span>
+                    </div>
+
+                    {/* Collection Progress bar */}
+                    <div className="pt-1.5 space-y-1">
+                      <div className="flex items-center justify-between text-[10px]">
+                        <span className="text-zinc-400">Collection Rate</span>
+                        <span className="font-semibold text-emerald-600 dark:text-emerald-400">{collectionPct}%</span>
+                      </div>
+                      <div className="w-full h-1.5 bg-zinc-200 dark:bg-zinc-800 rounded-full overflow-hidden">
+                        <div
+                          className="h-full bg-emerald-500 rounded-full transition-all duration-500"
+                          style={{ width: `${collectionPct}%` }}
+                        />
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Filter action button */}
+                  <div className="mt-3.5 pt-2.5 border-t border-zinc-200/60 dark:border-zinc-800 flex justify-end">
+                    <button
+                      type="button"
+                      onClick={() => {
+                        if (isMonthFiltered) {
+                          const cur = getCurrentMonthRange();
+                          setStartDate(cur.start);
+                          setEndDate(cur.end);
+                          toast("Reset to current month view", "info");
+                        } else {
+                          setStartDate(m.startDate);
+                          setEndDate(m.endDate);
+                          toast(`Filtered bills for ${m.label}`, "info");
+                        }
+                      }}
+                      className={`text-[11px] font-semibold flex items-center gap-1 px-2.5 py-1 rounded-lg transition-all cursor-pointer ${
+                        isMonthFiltered
+                          ? "bg-indigo-600 text-white shadow-xs"
+                          : "text-indigo-600 dark:text-indigo-400 hover:bg-indigo-50 dark:hover:bg-indigo-950/50"
+                      }`}
+                    >
+                      <span>{isMonthFiltered ? "Active Filter (Reset)" : "Filter this month's bills"}</span>
+                      <ArrowRight className="w-3 h-3" />
+                    </button>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        </div>
+      )}
 
       {/* Search & Filters */}
       <div className="flex flex-col md:flex-row gap-3">
@@ -685,6 +1205,162 @@ export default function CreditBillsPage() {
         </div>
       </div>
 
+      {/* Date Range Filter Bar */}
+      <div className="flex flex-col lg:flex-row items-stretch lg:items-center justify-between gap-3 bg-white dark:bg-[#0c0c14] p-3.5 rounded-2xl border border-zinc-200/70 dark:border-zinc-800/80 shadow-[0_4px_20px_rgb(0,0,0,0.006)]">
+        <div className="flex flex-wrap items-center gap-3">
+          <div className="flex items-center gap-2 text-zinc-700 dark:text-zinc-200 font-bold text-xs shrink-0">
+            <span className="p-1.5 rounded-lg bg-indigo-50 dark:bg-indigo-950/70 text-indigo-600 dark:text-indigo-300 border border-indigo-200/80 dark:border-indigo-700/60 shadow-xs flex items-center justify-center">
+              <Calendar className="w-4 h-4 text-indigo-600 dark:text-indigo-300" />
+            </span>
+            <span className="hidden sm:inline">Filter By:</span>
+            {/* Dropdown toggle for Bill Date vs Due Date */}
+            <select
+              value={dateType}
+              onChange={(e) => setDateType(e.target.value as "createdAt" | "dueDate")}
+              className="text-xs font-bold bg-zinc-50 dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-750 text-zinc-800 dark:text-zinc-200 rounded-xl px-2.5 py-1.5 focus:outline-none focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500/10 cursor-pointer shadow-xs"
+            >
+              <option value="createdAt">Bill Date</option>
+              <option value="dueDate">Due Date</option>
+            </select>
+          </div>
+
+          <div className="flex flex-wrap items-center gap-2">
+            <div
+              onClick={(e) => {
+                const input = e.currentTarget.querySelector('input[type="date"]') as HTMLInputElement | null;
+                if (input && typeof input.showPicker === 'function') {
+                  try { input.showPicker(); } catch {}
+                }
+              }}
+              className="relative flex items-center gap-1.5 bg-zinc-50 dark:bg-zinc-900 border border-zinc-250 dark:border-zinc-700 hover:border-zinc-300 dark:hover:border-zinc-600 px-2.5 py-1.5 rounded-xl shadow-xs transition-colors cursor-pointer group"
+            >
+              <span className="text-[10px] font-bold text-zinc-400 dark:text-zinc-400 uppercase tracking-wider select-none pointer-events-none">
+                From
+              </span>
+              <div className="relative flex items-center">
+                <input
+                  type="date"
+                  value={startDate}
+                  onChange={(e) => setStartDate(e.target.value)}
+                  className="bg-transparent text-xs text-zinc-800 dark:text-zinc-100 focus:outline-none cursor-pointer pr-5 [&::-webkit-calendar-picker-indicator]:opacity-0 [&::-webkit-calendar-picker-indicator]:absolute [&::-webkit-calendar-picker-indicator]:right-0 [&::-webkit-calendar-picker-indicator]:w-5 [&::-webkit-calendar-picker-indicator]:h-5 [&::-webkit-calendar-picker-indicator]:cursor-pointer dark:[color-scheme:dark]"
+                />
+                <Calendar className="w-3.5 h-3.5 text-zinc-400 dark:text-white group-hover:text-zinc-600 dark:group-hover:text-white absolute right-0 pointer-events-none transition-colors" />
+              </div>
+            </div>
+            <span className="text-zinc-400 dark:text-zinc-500 text-xs font-semibold select-none">to</span>
+            <div
+              onClick={(e) => {
+                const input = e.currentTarget.querySelector('input[type="date"]') as HTMLInputElement | null;
+                if (input && typeof input.showPicker === 'function') {
+                  try { input.showPicker(); } catch {}
+                }
+              }}
+              className="relative flex items-center gap-1.5 bg-zinc-50 dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-700 hover:border-zinc-300 dark:hover:border-zinc-600 px-2.5 py-1.5 rounded-xl shadow-xs transition-colors cursor-pointer group"
+            >
+              <span className="text-[10px] font-bold text-zinc-400 dark:text-zinc-400 uppercase tracking-wider select-none pointer-events-none">
+                To
+              </span>
+              <div className="relative flex items-center">
+                <input
+                  type="date"
+                  value={endDate}
+                  onChange={(e) => setEndDate(e.target.value)}
+                  className="bg-transparent text-xs text-zinc-800 dark:text-zinc-100 focus:outline-none cursor-pointer pr-5 [&::-webkit-calendar-picker-indicator]:opacity-0 [&::-webkit-calendar-picker-indicator]:absolute [&::-webkit-calendar-picker-indicator]:right-0 [&::-webkit-calendar-picker-indicator]:w-5 [&::-webkit-calendar-picker-indicator]:h-5 [&::-webkit-calendar-picker-indicator]:cursor-pointer dark:[color-scheme:dark]"
+                />
+                <Calendar className="w-3.5 h-3.5 text-zinc-400 dark:text-white group-hover:text-zinc-600 dark:group-hover:text-white absolute right-0 pointer-events-none transition-colors" />
+              </div>
+            </div>
+
+            {(startDate || endDate) && (
+              <button
+                type="button"
+                onClick={() => {
+                  setStartDate("");
+                  setEndDate("");
+                }}
+                className="flex items-center gap-1 px-2.5 py-1.5 text-[11px] font-semibold text-rose-600 dark:text-rose-400 bg-rose-50 dark:bg-rose-950/30 border border-rose-200 dark:border-rose-900/40 rounded-xl hover:bg-rose-100 dark:hover:bg-rose-950/60 transition-all cursor-pointer shadow-xs"
+                title="Reset date filter"
+              >
+                <X className="w-3.5 h-3.5" />
+                Clear
+              </button>
+            )}
+          </div>
+        </div>
+
+        {/* Quick Presets */}
+        <div className="flex items-center gap-1.5 overflow-x-auto scrollbar-none pt-2 lg:pt-0 border-t lg:border-t-0 border-zinc-100 dark:border-zinc-800/60">
+          <span className="text-[10px] font-bold uppercase tracking-wider text-zinc-400 dark:text-zinc-500 mr-1 shrink-0">
+            Presets:
+          </span>
+          {[
+            {
+              label: "This Month",
+              getRange: () => {
+                const r = getCurrentMonthRange();
+                return [r.start, r.end];
+              },
+            },
+            {
+              label: "Last 3 Months",
+              getRange: () => {
+                const r = getLast3MonthsRange();
+                return [r.start, r.end];
+              },
+            },
+            {
+              label: "Today",
+              getRange: () => {
+                const t = formatDateToInput(new Date());
+                return [t, t];
+              },
+            },
+            {
+              label: "Yesterday",
+              getRange: () => {
+                const y = new Date();
+                y.setDate(y.getDate() - 1);
+                const s = formatDateToInput(y);
+                return [s, s];
+              },
+            },
+            {
+              label: "Last 7 Days",
+              getRange: () => {
+                const d = new Date();
+                d.setDate(d.getDate() - 6);
+                return [formatDateToInput(d), formatDateToInput(new Date())];
+              },
+            },
+          ].map((preset) => {
+            const [pStart, pEnd] = preset.getRange();
+            const isPresetActive = startDate === pStart && endDate === pEnd;
+            return (
+              <button
+                key={preset.label}
+                type="button"
+                onClick={() => {
+                  if (isPresetActive) {
+                    setStartDate("");
+                    setEndDate("");
+                  } else {
+                    setStartDate(pStart);
+                    setEndDate(pEnd);
+                  }
+                }}
+                className={`px-2.5 py-1 rounded-lg text-[11px] font-semibold transition-all cursor-pointer whitespace-nowrap ${
+                  isPresetActive
+                    ? "bg-indigo-600 text-white shadow-sm shadow-indigo-500/20"
+                    : "text-zinc-600 dark:text-zinc-400 hover:bg-zinc-100 dark:hover:bg-zinc-800/70 border border-zinc-200/60 dark:border-zinc-800/60 bg-zinc-50/50 dark:bg-zinc-900/30"
+                }`}
+              >
+                {preset.label}
+              </button>
+            );
+          })}
+        </div>
+      </div>
+
       {/* Desktop view: Table (hidden on mobile) */}
       <div className="hidden md:block">
         <Card className="p-0 overflow-hidden border border-zinc-200/60 dark:border-zinc-800/80 shadow-[0_8px_30px_rgb(0,0,0,0.012),0_1px_2px_rgb(0,0,0,0.008)]">
@@ -716,7 +1392,9 @@ export default function CreditBillsPage() {
                     <td colSpan={8} className="px-4 py-12 text-center">
                       <Receipt className="w-7 h-7 mx-auto mb-2 text-zinc-400 dark:text-zinc-500" />
                       <p className="text-xs text-zinc-400 dark:text-zinc-400">
-                        {search ? `No matches for "${search}"` : "No credit bills found"}
+                        {search || startDate || endDate || statusFilter !== "all"
+                          ? "No credit bills match the selected filters"
+                          : "No credit bills found"}
                       </p>
                     </td>
                   </tr>
@@ -730,7 +1408,10 @@ export default function CreditBillsPage() {
                       >
                         <td className="px-4 py-3 font-mono text-zinc-800 dark:text-zinc-200">
                           <div className="flex flex-col gap-0.5">
-                            <span>{bill.billNumber}</span>
+                            <span className="font-semibold">{bill.billNumber}</span>
+                            <span className="text-[10px] text-zinc-400 dark:text-zinc-500 font-sans">
+                              {new Date(bill.createdAt).toLocaleDateString()}
+                            </span>
                             {bill.isHistorical && (
                               <span className="inline-block text-[9px] font-bold uppercase tracking-wider text-amber-600 dark:text-amber-400 bg-amber-50 dark:bg-amber-950/40 border border-amber-200 dark:border-amber-800/40 px-1.5 py-0.5 rounded-md w-fit">
                                 Historical
@@ -756,8 +1437,15 @@ export default function CreditBillsPage() {
                         <td className="px-3 py-3 text-right font-semibold text-zinc-800 dark:text-zinc-200 tabular-nums">
                           Rs. {bill.grandTotal.toFixed(2)}
                         </td>
-                        <td className="px-3 py-3 text-right text-emerald-600 dark:text-emerald-450 font-semibold tabular-nums">
-                          Rs. {bill.amountPaid.toFixed(2)}
+                        <td className="px-3 py-3 text-right tabular-nums">
+                          <span className="font-semibold text-emerald-600 dark:text-emerald-450 block">
+                            Rs. {bill.amountPaid.toFixed(2)}
+                          </span>
+                          {(bill.paymentMethod === "Cheque" || bill.chequeNumber) && (
+                            <span className="inline-flex items-center gap-1 text-[9px] font-bold text-indigo-600 dark:text-indigo-400 bg-indigo-50 dark:bg-indigo-950/40 border border-indigo-200/60 dark:border-indigo-800/40 px-1.5 py-0.2 rounded mt-0.5">
+                              <CreditCard className="w-2.5 h-2.5" /> Cheque
+                            </span>
+                          )}
                         </td>
                         <td className="px-3 py-3 text-right text-rose-600 dark:text-rose-400 font-bold tabular-nums">
                           Rs. {outstanding.toFixed(2)}
@@ -824,7 +1512,9 @@ export default function CreditBillsPage() {
           <div className="bg-white dark:bg-[#0c0c14] p-8 rounded-2xl border border-zinc-150 dark:border-zinc-800/80 text-center">
             <Receipt className="w-8 h-8 mx-auto mb-2 text-zinc-400 dark:text-zinc-500" />
             <p className="text-xs text-zinc-400 dark:text-zinc-400">
-              {search ? `No matches for "${search}"` : "No credit bills found"}
+              {search || startDate || endDate || statusFilter !== "all"
+                ? "No credit bills match the selected filters"
+                : "No credit bills found"}
             </p>
           </div>
         ) : (
@@ -840,6 +1530,9 @@ export default function CreditBillsPage() {
                   <div className="flex flex-col gap-0.5">
                     <span className="font-mono text-xs font-bold text-zinc-800 dark:text-zinc-200">
                       {bill.billNumber}
+                    </span>
+                    <span className="text-[10px] text-zinc-400 dark:text-zinc-500 font-sans">
+                      {new Date(bill.createdAt).toLocaleDateString()}
                     </span>
                     {bill.isHistorical && (
                       <span className="text-[9px] font-bold uppercase tracking-wider text-amber-600 dark:text-amber-400 bg-amber-50 dark:bg-amber-950/40 border border-amber-200 dark:border-amber-800/40 px-1.5 py-0.5 rounded-md w-fit">
@@ -887,6 +1580,11 @@ export default function CreditBillsPage() {
                     <span className="text-xs font-bold text-emerald-600 dark:text-emerald-400 block mt-0.5 font-mono">
                       Rs.{bill.amountPaid.toFixed(0)}
                     </span>
+                    {(bill.paymentMethod === "Cheque" || bill.chequeNumber) && (
+                      <span className="text-[8px] font-bold text-indigo-600 dark:text-indigo-400 block mt-0.5">
+                        Cheque
+                      </span>
+                    )}
                   </div>
                   <div>
                     <span className="text-[9px] font-bold text-zinc-400 dark:text-zinc-500 uppercase tracking-wider block">
@@ -1147,6 +1845,79 @@ export default function CreditBillsPage() {
             </div>
           </div>
 
+          {/* Payment Method in Import Modal */}
+          {Number(importForm.amountPaid) > 0 && (
+            <div className="p-3 bg-zinc-50/70 dark:bg-zinc-900/40 border border-zinc-200 dark:border-zinc-800 rounded-xl space-y-2.5">
+              <div className="flex items-center justify-between">
+                <span className="text-[10px] font-bold text-zinc-500 uppercase tracking-wider">Payment Method</span>
+                <div className="flex gap-1">
+                  <button
+                    type="button"
+                    onClick={() => setImportForm((f) => ({ ...f, paymentMethod: "Cash" }))}
+                    className={`px-2 py-1 text-xs font-bold rounded-lg transition-all cursor-pointer ${
+                      importForm.paymentMethod === "Cash"
+                        ? "bg-white dark:bg-zinc-800 text-zinc-900 dark:text-zinc-100 shadow-sm"
+                        : "text-zinc-400 hover:text-zinc-700"
+                    }`}
+                  >
+                    Cash
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setImportForm((f) => ({ ...f, paymentMethod: "Cheque" }))}
+                    className={`px-2 py-1 text-xs font-bold rounded-lg transition-all cursor-pointer ${
+                      importForm.paymentMethod === "Cheque"
+                        ? "bg-indigo-600 text-white shadow-sm"
+                        : "text-zinc-400 hover:text-zinc-700"
+                    }`}
+                  >
+                    Cheque
+                  </button>
+                </div>
+              </div>
+
+              {importForm.paymentMethod === "Cheque" && (
+                <div className="space-y-2 pt-1 border-t border-zinc-200/60 dark:border-zinc-800/60">
+                  <div className="grid grid-cols-2 gap-2">
+                    <div>
+                      <label className="text-[9px] font-bold text-zinc-500 uppercase block mb-1">Cheque Number *</label>
+                      <Input
+                        value={importForm.chequeNumber}
+                        onChange={(e) => setImportForm((f) => ({ ...f, chequeNumber: e.target.value }))}
+                        placeholder="e.g. 104523"
+                        className="text-xs font-mono"
+                      />
+                    </div>
+                    <div>
+                      <label className="text-[9px] font-bold text-zinc-500 uppercase block mb-1">Bank Name *</label>
+                      <input
+                        list="import-bank-options"
+                        value={importForm.bankName}
+                        onChange={(e) => setImportForm((f) => ({ ...f, bankName: e.target.value }))}
+                        placeholder="e.g. Commercial Bank"
+                        className="w-full px-3 py-2 text-xs bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-xl focus:outline-none focus:border-indigo-500 text-zinc-800 dark:text-zinc-100"
+                      />
+                      <datalist id="import-bank-options">
+                        {SRI_LANKAN_BANKS.map((b) => (
+                          <option key={b} value={b} />
+                        ))}
+                      </datalist>
+                    </div>
+                  </div>
+                  <div>
+                    <label className="text-[9px] font-bold text-zinc-500 uppercase block mb-1">Cheque Date</label>
+                    <input
+                      type="date"
+                      value={importForm.chequeDate}
+                      onChange={(e) => setImportForm((f) => ({ ...f, chequeDate: e.target.value }))}
+                      className="w-full px-3 py-1.5 text-xs bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-xl focus:outline-none focus:border-indigo-500 text-zinc-800 dark:text-zinc-100"
+                    />
+                  </div>
+                </div>
+              )}
+            </div>
+          )}
+
           {/* Note */}
           <div className="space-y-1.5">
             <label className="text-xs font-semibold text-zinc-600 dark:text-zinc-400">Note (optional)</label>
@@ -1323,6 +2094,14 @@ export default function CreditBillsPage() {
                   <span>Amount Paid:</span>
                   <span className="font-mono">Rs. {selectedBill.amountPaid.toFixed(2)}</span>
                 </div>
+                {(selectedBill.paymentMethod === "Cheque" || selectedBill.chequeNumber) && (
+                  <div className="flex justify-between w-full sm:w-56 text-indigo-600 dark:text-indigo-400 font-semibold text-[10px]">
+                    <span>Cheque Info:</span>
+                    <span className="font-mono">
+                      #{selectedBill.chequeNumber} {selectedBill.bankName ? `(${selectedBill.bankName})` : ""}
+                    </span>
+                  </div>
+                )}
                 <div className="flex justify-between w-full sm:w-56 text-rose-600 dark:text-rose-400 font-extrabold border-t border-dashed border-zinc-200 dark:border-zinc-800 pt-2">
                   <span>Outstanding Due:</span>
                   <span className="font-mono text-sm bg-rose-50 dark:bg-rose-950/20 px-2 py-0.5 rounded-lg border border-rose-100/50 dark:border-rose-900/30">
@@ -1356,10 +2135,54 @@ export default function CreditBillsPage() {
                       {/* Timeline dot */}
                       <span className="absolute -left-[23px] top-1 flex h-2.5 w-2.5 items-center justify-center rounded-full bg-indigo-600 ring-4 ring-white dark:ring-[#0c0c14]" />
                       <div className="flex justify-between items-start gap-4">
-                        <div>
-                          <p className="font-extrabold text-xs text-zinc-800 dark:text-zinc-200 font-mono">
-                            Rs. {pm.amount.toFixed(2)}
-                          </p>
+                        <div className="space-y-1">
+                          <div className="flex items-center gap-2">
+                            <span className="font-extrabold text-xs text-zinc-800 dark:text-zinc-200 font-mono">
+                              Rs. {pm.amount.toFixed(2)}
+                            </span>
+                            {pm.paymentMethod === "Cheque" || pm.chequeNumber ? (
+                              <span className="inline-flex items-center gap-1 text-[9px] font-bold text-indigo-700 dark:text-indigo-300 bg-indigo-50 dark:bg-indigo-950/50 border border-indigo-200/80 dark:border-indigo-800/60 px-1.5 py-0.5 rounded">
+                                <CreditCard className="w-2.5 h-2.5" /> Cheque
+                              </span>
+                            ) : (
+                              <span className="inline-flex items-center gap-1 text-[9px] font-semibold text-emerald-700 dark:text-emerald-300 bg-emerald-50 dark:bg-emerald-950/40 border border-emerald-200/60 dark:border-emerald-800/40 px-1.5 py-0.5 rounded">
+                                <Banknote className="w-2.5 h-2.5" /> Cash
+                              </span>
+                            )}
+                          </div>
+
+                          {(pm.paymentMethod === "Cheque" || pm.chequeNumber) && (
+                            <div className="p-2 rounded-lg bg-indigo-50/60 dark:bg-indigo-950/30 border border-indigo-100 dark:border-indigo-900/40 text-[10px] space-y-1">
+                              <div className="flex items-center gap-2 text-zinc-700 dark:text-zinc-300">
+                                <span className="font-bold">Cheque No:</span>
+                                <span className="font-mono font-bold text-indigo-600 dark:text-indigo-400">
+                                  #{pm.chequeNumber || "N/A"}
+                                </span>
+                                {pm.bankName && <span className="text-zinc-500">• {pm.bankName}</span>}
+                              </div>
+                              <div className="flex items-center justify-between text-zinc-500 dark:text-zinc-400 gap-2">
+                                {pm.chequeDate && (
+                                  <span>Cheque Date: {new Date(pm.chequeDate).toLocaleDateString()}</span>
+                                )}
+                                {pm.chequeStatus && (
+                                  <span
+                                    className={`font-bold px-1.5 py-0.5 rounded text-[9px] ${
+                                      pm.chequeStatus === "Cleared"
+                                        ? "text-emerald-700 bg-emerald-100/70 dark:bg-emerald-950/60"
+                                        : pm.chequeStatus === "Deposited"
+                                        ? "text-blue-700 bg-blue-100/70 dark:bg-blue-950/60"
+                                        : pm.chequeStatus === "Bounced"
+                                        ? "text-rose-700 bg-rose-100/70 dark:bg-rose-950/60"
+                                        : "text-amber-700 bg-amber-100/70 dark:bg-amber-950/60"
+                                    }`}
+                                  >
+                                    {pm.chequeStatus}
+                                  </span>
+                                )}
+                              </div>
+                            </div>
+                          )}
+
                           {pm.note && (
                             <p className="text-[10px] text-zinc-500 dark:text-zinc-400 mt-0.5 leading-relaxed">
                               {pm.note}
@@ -1369,6 +2192,21 @@ export default function CreditBillsPage() {
                         <div className="text-right text-[10px] text-zinc-400 shrink-0">
                           <p className="font-bold">{new Date(pm.date).toLocaleDateString()}</p>
                           {pm.recordedBy && <p className="font-medium text-zinc-500">by {pm.recordedBy.name}</p>}
+                          {(pm.paymentMethod === "Cheque" || pm.chequeNumber) && (role === "admin" || role === "manager") && (
+                            <div className="mt-1 flex items-center justify-end gap-1">
+                              <span className="text-[9px] text-zinc-400">Status:</span>
+                              <select
+                                value={pm.chequeStatus || "Pending"}
+                                onChange={(e) => handleUpdateChequeStatus(selectedBill._id, e.target.value)}
+                                className="text-[9px] font-bold bg-white dark:bg-zinc-800 border border-zinc-200 dark:border-zinc-700 rounded px-1.5 py-0.5 text-zinc-850 dark:text-zinc-200 cursor-pointer"
+                              >
+                                <option value="Pending">Pending</option>
+                                <option value="Deposited">Deposited</option>
+                                <option value="Cleared">Cleared</option>
+                                <option value="Bounced">Bounced</option>
+                              </select>
+                            </div>
+                          )}
                         </div>
                       </div>
                     </div>
@@ -1450,8 +2288,47 @@ export default function CreditBillsPage() {
             </div>
 
             <div className="space-y-3.5">
+              {/* Payment Method Selector */}
+              <div>
+                <label className="text-xs font-semibold text-zinc-600 dark:text-zinc-400 block mb-1.5">
+                  Payment Method
+                </label>
+                <div className="grid grid-cols-2 gap-2 p-1 bg-zinc-100 dark:bg-zinc-900 rounded-xl border border-zinc-200 dark:border-zinc-800">
+                  <button
+                    type="button"
+                    onClick={() => setPaymentMethod("Cash")}
+                    className={`flex items-center justify-center gap-1.5 py-2 px-3 rounded-lg text-xs font-bold transition-all cursor-pointer ${
+                      paymentMethod === "Cash"
+                        ? "bg-white dark:bg-zinc-800 text-zinc-900 dark:text-zinc-100 shadow-sm"
+                        : "text-zinc-500 hover:text-zinc-800 dark:hover:text-zinc-200"
+                    }`}
+                  >
+                    <Banknote className="w-3.5 h-3.5 text-emerald-500" />
+                    Cash
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setPaymentMethod("Cheque");
+                      if (!paymentAmount && selectedBill) {
+                        const out = selectedBill.grandTotal - selectedBill.amountPaid;
+                        if (out > 0) setPaymentAmount(out.toFixed(2));
+                      }
+                    }}
+                    className={`flex items-center justify-center gap-1.5 py-2 px-3 rounded-lg text-xs font-bold transition-all cursor-pointer ${
+                      paymentMethod === "Cheque"
+                        ? "bg-gradient-to-r from-indigo-600 to-blue-600 text-white shadow-sm"
+                        : "text-zinc-500 hover:text-zinc-800 dark:hover:text-zinc-200"
+                    }`}
+                  >
+                    <CreditCard className="w-3.5 h-3.5" />
+                    Cheque
+                  </button>
+                </div>
+              </div>
+
               <Input
-                label="Amount Received (Rs.)"
+                label={paymentMethod === "Cheque" ? "Cheque Amount (Rs.)" : "Amount Received (Rs.)"}
                 placeholder="0.00"
                 type="number"
                 step="0.01"
@@ -1459,9 +2336,90 @@ export default function CreditBillsPage() {
                 value={paymentAmount}
                 onChange={(e: any) => setPaymentAmount(e.target.value)}
               />
+
+              {/* Cheque Details Fields */}
+              {paymentMethod === "Cheque" && (
+                <div className="p-3.5 bg-gradient-to-b from-indigo-50/70 to-blue-50/40 dark:from-indigo-950/30 dark:to-blue-950/20 border border-indigo-200/80 dark:border-indigo-800/50 rounded-xl space-y-3">
+                  <div className="flex items-center justify-between border-b border-indigo-100 dark:border-indigo-900/40 pb-1.5">
+                    <span className="text-[11px] font-extrabold text-indigo-700 dark:text-indigo-400 uppercase tracking-wider flex items-center gap-1.5">
+                      <CreditCard className="w-3.5 h-3.5" /> Cheque Information
+                    </span>
+                    <span className="text-[9px] font-bold text-rose-500 uppercase">* Required</span>
+                  </div>
+
+                  <div className="space-y-1">
+                    <label className="text-[10px] font-bold text-zinc-600 dark:text-zinc-300 uppercase tracking-wider block">
+                      Cheque Number <span className="text-rose-500">*</span>
+                    </label>
+                    <div className="relative">
+                      <Hash className="w-3.5 h-3.5 absolute left-3 top-1/2 -translate-y-1/2 text-zinc-400 pointer-events-none" />
+                      <input
+                        type="text"
+                        required={paymentMethod === "Cheque"}
+                        placeholder="e.g. CHQ-209481"
+                        value={paymentChequeNumber}
+                        onChange={(e) => setPaymentChequeNumber(e.target.value)}
+                        className="w-full pl-9 pr-3 py-2 text-xs bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-lg focus:outline-none focus:border-indigo-500 font-mono font-bold text-zinc-800 dark:text-zinc-100 placeholder-zinc-400"
+                      />
+                    </div>
+                  </div>
+
+                  <div className="space-y-1">
+                    <label className="text-[10px] font-bold text-zinc-600 dark:text-zinc-300 uppercase tracking-wider block">
+                      Bank Name <span className="text-rose-500">*</span>
+                    </label>
+                    <div className="relative">
+                      <Building2 className="w-3.5 h-3.5 absolute left-3 top-1/2 -translate-y-1/2 text-zinc-400 pointer-events-none" />
+                      <input
+                        type="text"
+                        list="modal-bank-options"
+                        required={paymentMethod === "Cheque"}
+                        placeholder="e.g. Commercial Bank"
+                        value={paymentBankName}
+                        onChange={(e) => setPaymentBankName(e.target.value)}
+                        className="w-full pl-9 pr-3 py-2 text-xs bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-lg focus:outline-none focus:border-indigo-500 font-medium text-zinc-800 dark:text-zinc-100 placeholder-zinc-400"
+                      />
+                      <datalist id="modal-bank-options">
+                        {SRI_LANKAN_BANKS.map((b) => (
+                          <option key={b} value={b} />
+                        ))}
+                      </datalist>
+                    </div>
+                  </div>
+
+                  <div className="grid grid-cols-2 gap-2">
+                    <div className="space-y-1">
+                      <label className="text-[10px] font-bold text-zinc-600 dark:text-zinc-300 uppercase tracking-wider block">
+                        Cheque Date
+                      </label>
+                      <input
+                        type="date"
+                        value={paymentChequeDate}
+                        onChange={(e) => setPaymentChequeDate(e.target.value)}
+                        className="w-full px-2.5 py-1.5 text-xs bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-lg focus:outline-none focus:border-indigo-500 text-zinc-800 dark:text-zinc-100 font-medium"
+                      />
+                    </div>
+                    <div className="space-y-1">
+                      <label className="text-[10px] font-bold text-zinc-600 dark:text-zinc-300 uppercase tracking-wider block">
+                        Status
+                      </label>
+                      <select
+                        value={paymentChequeStatus}
+                        onChange={(e) => setPaymentChequeStatus(e.target.value as any)}
+                        className="w-full px-2.5 py-1.5 text-xs bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-lg focus:outline-none focus:border-indigo-500 text-zinc-800 dark:text-zinc-100 font-medium cursor-pointer"
+                      >
+                        <option value="Pending">Pending</option>
+                        <option value="Deposited">Deposited</option>
+                        <option value="Cleared">Cleared</option>
+                      </select>
+                    </div>
+                  </div>
+                </div>
+              )}
+
               <Input
                 label="Note / Reference"
-                placeholder="e.g. Cash payment, bank transfer reference..."
+                placeholder="e.g. Customer signature on cheque, reference note..."
                 value={paymentNote}
                 onChange={(e: any) => setPaymentNote(e.target.value)}
               />

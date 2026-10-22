@@ -13,6 +13,11 @@ export interface IPaymentRecord {
   amount: number;
   date: Date;
   note?: string;
+  paymentMethod?: 'Cash' | 'Cheque' | 'Bank Transfer';
+  chequeNumber?: string;
+  bankName?: string;
+  chequeDate?: Date;
+  chequeStatus?: 'Pending' | 'Deposited' | 'Cleared' | 'Bounced';
   recordedBy?: mongoose.Types.ObjectId;
 }
 
@@ -26,6 +31,11 @@ export interface ICreditBill extends Document {
   discount: number;
   grandTotal: number;
   amountPaid: number;
+  paymentMethod?: 'Cash' | 'Cheque' | 'Bank Transfer' | 'Credit';
+  chequeNumber?: string;
+  bankName?: string;
+  chequeDate?: Date;
+  chequeStatus?: 'Pending' | 'Deposited' | 'Cleared' | 'Bounced';
   status: 'Pending' | 'Partially Paid' | 'Paid' | 'Overdue';
   dueDate?: Date;
   note?: string;
@@ -52,6 +62,19 @@ const PaymentRecordSchema = new Schema<IPaymentRecord>(
   {
     amount: { type: Number, required: true, min: 0 },
     date: { type: Date, default: Date.now },
+    paymentMethod: {
+      type: String,
+      enum: ['Cash', 'Cheque', 'Bank Transfer'],
+      default: 'Cash',
+    },
+    chequeNumber: { type: String },
+    bankName: { type: String },
+    chequeDate: { type: Date },
+    chequeStatus: {
+      type: String,
+      enum: ['Pending', 'Deposited', 'Cleared', 'Bounced'],
+      default: 'Pending',
+    },
     note: { type: String },
     recordedBy: { type: Schema.Types.ObjectId, ref: 'User' },
   },
@@ -69,6 +92,19 @@ const CreditBillSchema: Schema = new Schema(
     discount: { type: Number, default: 0, min: 0 },
     grandTotal: { type: Number, required: true, min: 0 },
     amountPaid: { type: Number, default: 0, min: 0 },
+    paymentMethod: {
+      type: String,
+      enum: ['Cash', 'Cheque', 'Bank Transfer', 'Credit'],
+      default: 'Credit',
+    },
+    chequeNumber: { type: String },
+    bankName: { type: String },
+    chequeDate: { type: Date },
+    chequeStatus: {
+      type: String,
+      enum: ['Pending', 'Deposited', 'Cleared', 'Bounced'],
+      default: 'Pending',
+    },
     status: {
       type: String,
       enum: ['Pending', 'Partially Paid', 'Paid', 'Overdue'],
@@ -98,6 +134,7 @@ CreditBillSchema.pre<ICreditBill>('save', function (this: ICreditBill) {
 
 CreditBillSchema.index({ customerName: 1 });
 CreditBillSchema.index({ customerPhone: 1 });
+CreditBillSchema.index({ chequeNumber: 1 });
 CreditBillSchema.index({ status: 1 });
 CreditBillSchema.index({ dueDate: 1 });
 CreditBillSchema.index({ createdAt: -1 });

@@ -17,9 +17,32 @@ import {
   Tag,
   Loader2,
   Receipt,
+  CreditCard,
+  Building2,
+  Banknote,
+  Hash,
 } from "lucide-react";
 import { toast } from "@/components/ui/Toast";
 import { Modal } from "@/components/ui/Modal";
+
+const SRI_LANKAN_BANKS = [
+  "Commercial Bank",
+  "Bank of Ceylon (BOC)",
+  "Hatton National Bank (HNB)",
+  "Sampath Bank",
+  "People's Bank",
+  "Nations Trust Bank (NTB)",
+  "Seylan Bank",
+  "National Development Bank (NDB)",
+  "DFCC Bank",
+  "Pan Asia Bank",
+  "Union Bank",
+  "Standard Chartered Bank",
+  "HSBC",
+  "Amana Bank",
+  "Cargills Bank",
+  "Sanasa Development Bank (SDB)",
+];
 
 interface Product {
   _id: string;
@@ -45,6 +68,11 @@ export default function CreateCreditBillPage() {
   const [dueDate, setDueDate] = useState("");
   const [note, setNote] = useState("");
   const [amountPaid, setAmountPaid] = useState("0");
+  const [paymentMethod, setPaymentMethod] = useState<"Cash" | "Cheque">("Cash");
+  const [chequeNumber, setChequeNumber] = useState("");
+  const [bankName, setBankName] = useState("");
+  const [chequeDate, setChequeDate] = useState(new Date().toISOString().slice(0, 10));
+  const [chequeStatus, setChequeStatus] = useState<"Pending" | "Deposited" | "Cleared">("Pending");
 
   const [billItems, setBillItems] = useState<BillItemState[]>([
     { product: "", quantity: 1, unitPrice: 0, maxQty: 0 },
@@ -126,6 +154,17 @@ export default function CreateCreditBillPage() {
     if (amountPaidAmt < 0) { toast("Amount paid cannot be negative", "error"); return; }
     if (amountPaidAmt > grandTotal) { toast("Amount paid cannot exceed grand total", "error"); return; }
 
+    if (paymentMethod === "Cheque" && amountPaidAmt > 0) {
+      if (!chequeNumber.trim()) {
+        toast("Cheque number is required for cheque payment", "error");
+        return;
+      }
+      if (!bankName.trim()) {
+        toast("Bank name is required for cheque payment", "error");
+        return;
+      }
+    }
+
     setSubmitting(true);
     try {
       const res = await fetch("/api/credit-bills", {
@@ -139,6 +178,11 @@ export default function CreateCreditBillPage() {
           note: note || undefined,
           discount: 0,
           amountPaid: amountPaidAmt,
+          paymentMethod: amountPaidAmt > 0 ? paymentMethod : "Credit",
+          chequeNumber: paymentMethod === "Cheque" && amountPaidAmt > 0 ? chequeNumber.trim() : undefined,
+          bankName: paymentMethod === "Cheque" && amountPaidAmt > 0 ? bankName.trim() : undefined,
+          chequeDate: paymentMethod === "Cheque" && amountPaidAmt > 0 && chequeDate ? chequeDate : undefined,
+          chequeStatus: paymentMethod === "Cheque" && amountPaidAmt > 0 ? chequeStatus : undefined,
           items: itemsToSend.map((i) => ({
             product: i.product,
             quantity: i.quantity,
@@ -190,7 +234,7 @@ export default function CreateCreditBillPage() {
       <form
         id="create-bill-form"
         onSubmit={handleSubmit}
-        className="max-w-5xl mx-auto px-4 sm:px-6 py-6 lg:grid lg:grid-cols-[1fr_300px] lg:gap-5 lg:items-start"
+        className="max-w-5xl mx-auto px-4 sm:px-6 py-6 lg:grid lg:grid-cols-[1fr_340px] lg:gap-5 lg:items-start"
       >
         {/* ── LEFT COLUMN ── */}
         <div className="space-y-4">
@@ -549,11 +593,56 @@ export default function CreateCreditBillPage() {
                 )}
               </div>
 
-              <div className="border-t border-dashed border-zinc-200 dark:border-zinc-800 pt-3.5 space-y-2">
-                {/* Amount Paid inline */}
+              <div className="border-t border-dashed border-zinc-200 dark:border-zinc-800 pt-3.5 space-y-3">
+                {/* Payment Method Selector */}
+                <div>
+                  <div className="flex items-center justify-between mb-1.5">
+                    <label className="text-[10px] font-bold text-zinc-400 dark:text-zinc-500 uppercase tracking-widest">
+                      Payment Method
+                    </label>
+                    {paymentMethod === "Cheque" && (
+                      <span className="text-[9px] font-semibold text-indigo-600 dark:text-indigo-400 bg-indigo-50 dark:bg-indigo-950/40 px-1.5 py-0.5 rounded">
+                        Cheque Payment
+                      </span>
+                    )}
+                  </div>
+                  <div className="grid grid-cols-2 gap-1.5 p-1 bg-zinc-100/70 dark:bg-zinc-900/50 rounded-xl border border-zinc-200/60 dark:border-zinc-800/80">
+                    <button
+                      type="button"
+                      onClick={() => setPaymentMethod("Cash")}
+                      className={`flex items-center justify-center gap-1.5 py-1.5 px-2 rounded-lg text-xs font-bold transition-all cursor-pointer ${
+                        paymentMethod === "Cash"
+                          ? "bg-white dark:bg-zinc-800 text-zinc-900 dark:text-zinc-100 shadow-sm"
+                          : "text-zinc-500 dark:text-zinc-400 hover:text-zinc-800 dark:hover:text-zinc-200"
+                      }`}
+                    >
+                      <Banknote className="w-3.5 h-3.5 text-emerald-500" />
+                      Cash
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setPaymentMethod("Cheque");
+                        if (parseFloat(amountPaid) === 0 && grandTotal > 0) {
+                          setAmountPaid(grandTotal.toString());
+                        }
+                      }}
+                      className={`flex items-center justify-center gap-1.5 py-1.5 px-2 rounded-lg text-xs font-bold transition-all cursor-pointer ${
+                        paymentMethod === "Cheque"
+                          ? "bg-gradient-to-r from-indigo-600 to-blue-600 text-white shadow-sm"
+                          : "text-zinc-500 dark:text-zinc-400 hover:text-zinc-800 dark:hover:text-zinc-200"
+                      }`}
+                    >
+                      <CreditCard className="w-3.5 h-3.5" />
+                      Cheque
+                    </button>
+                  </div>
+                </div>
+
+                {/* Amount Paid input */}
                 <div className="flex items-center justify-between gap-3">
                   <label className="text-[10px] font-bold text-zinc-400 dark:text-zinc-400 uppercase tracking-widest whitespace-nowrap">
-                    Amount Paid (Rs.)
+                    {paymentMethod === "Cheque" ? "Cheque Amount (Rs.)" : "Amount Paid (Rs.)"}
                   </label>
                   <input
                     type="number"
@@ -565,6 +654,91 @@ export default function CreateCreditBillPage() {
                     className="w-28 px-3 py-1.5 text-xs text-right bg-zinc-50/50 hover:bg-zinc-50/80 focus:bg-white dark:bg-zinc-900/30 dark:focus:bg-zinc-900/80 border border-zinc-200 dark:border-zinc-800 rounded-xl focus:outline-none focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500/5 transition-all text-zinc-800 dark:text-zinc-100 font-semibold"
                   />
                 </div>
+
+                {/* Cheque Details Fields - Shown when Cheque is selected */}
+                {paymentMethod === "Cheque" && (
+                  <div className="p-3 bg-gradient-to-b from-indigo-50/60 to-blue-50/30 dark:from-indigo-950/30 dark:to-blue-950/20 border border-indigo-200/80 dark:border-indigo-800/50 rounded-xl space-y-2.5 shadow-sm">
+                    <div className="flex items-center justify-between border-b border-indigo-100 dark:border-indigo-900/40 pb-1.5">
+                      <span className="text-[10px] font-extrabold text-indigo-700 dark:text-indigo-400 uppercase tracking-wider flex items-center gap-1.5">
+                        <CreditCard className="w-3.5 h-3.5" /> Cheque Details
+                      </span>
+                      <span className="text-[9px] font-bold text-rose-500 dark:text-rose-400 uppercase">
+                        * Required
+                      </span>
+                    </div>
+
+                    {/* Cheque Number */}
+                    <div className="space-y-1">
+                      <label className="text-[9px] font-bold text-zinc-600 dark:text-zinc-300 uppercase tracking-wider block">
+                        Cheque Number <span className="text-rose-500">*</span>
+                      </label>
+                      <div className="relative">
+                        <Hash className="w-3.5 h-3.5 absolute left-2.5 top-1/2 -translate-y-1/2 text-zinc-400 pointer-events-none" />
+                        <input
+                          type="text"
+                          required={paymentMethod === "Cheque"}
+                          placeholder="e.g. 104523"
+                          value={chequeNumber}
+                          onChange={(e) => setChequeNumber(e.target.value)}
+                          className="w-full pl-8 pr-2.5 py-1.5 text-xs bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-lg focus:outline-none focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500/10 font-mono font-bold text-zinc-800 dark:text-zinc-100 placeholder-zinc-400"
+                        />
+                      </div>
+                    </div>
+
+                    {/* Bank Name */}
+                    <div className="space-y-1">
+                      <label className="text-[9px] font-bold text-zinc-600 dark:text-zinc-300 uppercase tracking-wider block">
+                        Bank Name <span className="text-rose-500">*</span>
+                      </label>
+                      <div className="relative">
+                        <Building2 className="w-3.5 h-3.5 absolute left-2.5 top-1/2 -translate-y-1/2 text-zinc-400 pointer-events-none" />
+                        <input
+                          type="text"
+                          list="new-bill-bank-options"
+                          required={paymentMethod === "Cheque"}
+                          placeholder="e.g. Commercial Bank"
+                          value={bankName}
+                          onChange={(e) => setBankName(e.target.value)}
+                          className="w-full pl-8 pr-2.5 py-1.5 text-xs bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-lg focus:outline-none focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500/10 font-medium text-zinc-800 dark:text-zinc-100 placeholder-zinc-400"
+                        />
+                        <datalist id="new-bill-bank-options">
+                          {SRI_LANKAN_BANKS.map((b) => (
+                            <option key={b} value={b} />
+                          ))}
+                        </datalist>
+                      </div>
+                    </div>
+
+                    {/* Cheque Date & Status */}
+                    <div className="grid grid-cols-2 gap-2">
+                      <div className="space-y-1">
+                        <label className="text-[9px] font-bold text-zinc-600 dark:text-zinc-300 uppercase tracking-wider block">
+                          Cheque Date
+                        </label>
+                        <input
+                          type="date"
+                          value={chequeDate}
+                          onChange={(e) => setChequeDate(e.target.value)}
+                          className="w-full px-2 py-1.5 text-xs bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-lg focus:outline-none focus:border-indigo-500 text-zinc-800 dark:text-zinc-100 font-medium"
+                        />
+                      </div>
+                      <div className="space-y-1">
+                        <label className="text-[9px] font-bold text-zinc-600 dark:text-zinc-300 uppercase tracking-wider block">
+                          Status
+                        </label>
+                        <select
+                          value={chequeStatus}
+                          onChange={(e) => setChequeStatus(e.target.value as any)}
+                          className="w-full px-2 py-1.5 text-xs bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-lg focus:outline-none focus:border-indigo-500 text-zinc-800 dark:text-zinc-100 font-medium cursor-pointer"
+                        >
+                          <option value="Pending">Pending</option>
+                          <option value="Deposited">Deposited</option>
+                          <option value="Cleared">Cleared</option>
+                        </select>
+                      </div>
+                    </div>
+                  </div>
+                )}
 
                 <div className="flex justify-between text-xs text-zinc-500 dark:text-zinc-400 pt-1.5">
                   <span className="font-medium">Subtotal</span>

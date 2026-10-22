@@ -43,6 +43,9 @@ export async function GET(req: Request) {
     const { searchParams } = new URL(req.url);
     const status = searchParams.get('status');
     const search = searchParams.get('search');
+    const startDate = searchParams.get('startDate') || searchParams.get('dateFrom');
+    const endDate = searchParams.get('endDate') || searchParams.get('dateTo');
+    const dateType = searchParams.get('dateType') === 'dueDate' ? 'dueDate' : 'createdAt';
     const page = parseInt(searchParams.get('page') || '1');
     const limit = parseInt(searchParams.get('limit') || '20');
 
@@ -57,36 +60,147 @@ export async function GET(req: Request) {
         { customerName: { $regex: search, $options: 'i' } },
         { billNumber: { $regex: search, $options: 'i' } },
         { customerPhone: { $regex: search, $options: 'i' } },
+        { chequeNumber: { $regex: search, $options: 'i' } },
       ];
     }
+    if (startDate || endDate) {
+      const dateFilter: Record<string, Date> = {};
+      if (startDate) {
+        const d = new Date(startDate.includes('T') ? startDate : `${startDate}T00:00:00.000`);
+        if (!isNaN(d.getTime())) {
+          d.setHours(0, 0, 0, 0);
+          dateFilter.$gte = d;
+        }
+      }
+      if (endDate) {
+        const d = new Date(endDate.includes('T') ? endDate : `${endDate}T23:59:59.999`);
+        if (!isNaN(d.getTime())) {
+          d.setHours(23, 59, 59, 999);
+          dateFilter.$lte = d;
+        }
+      }
+      if (Object.keys(dateFilter).length > 0) {
+        if (dateType === 'dueDate') {
+          query.dueDate = dateFilter;
+        } else {
+          query.createdAt = dateFilter;
+        }
+      }
+    }
+
+    const sortOrder: Record<string, 1 | -1> =
+      dateType === 'dueDate' ? { dueDate: -1, createdAt: -1 } : { createdAt: -1 };
 
     const bills = await CreditBill.find(query)
       .populate('createdBy', 'name')
-      .sort({ createdAt: -1 })
+      .sort(sortOrder)
       .skip((page - 1) * limit)
       .limit(limit)
       .lean();
 
     const total = await CreditBill.countDocuments(query);
 
-    // Summary stats
-    const [stats] = await CreditBill.aggregate([
+    // Summary stats (reflecting active filters)
+    const statsPipeline: any[] = [];
+    if (Object.keys(query).length > 0) {
+      statsPipeline.push({ $match: query });
+    }
+    statsPipeline.push({
+      $group: {
+        _id: null,
+        totalBills: { $sum: 1 },
+        totalGrand: { $sum: '$grandTotal' },
+        totalPaid: { $sum: '$amountPaid' },
+        totalOutstanding: { $sum: { $subtract: ['$grandTotal', '$amountPaid'] } },
+      },
+    });
+
+    const [stats] = await CreditBill.aggregate(statsPipeline);
+
+    // Compute monthly stats for current month and last 3 months
+    const now = new Date();
+    const fourMonthsAgo = new Date(now.getFullYear(), now.getMonth() - 3, 1, 0, 0, 0, 0);
+
+    const monthlyPipeline: any[] = [
       {
-        $group: {
-          _id: null,
-          totalBills: { $sum: 1 },
-          totalGrand: { $sum: '$grandTotal' },
-          totalPaid: { $sum: '$amountPaid' },
-          totalOutstanding: { $sum: { $subtract: ['$grandTotal', '$amountPaid'] } },
+        $match: {
+          createdAt: { $gte: fourMonthsAgo },
         },
       },
-    ]);
+      {
+        $group: {
+          _id: {
+            year: { $year: { date: '$createdAt', timezone: '+05:30' } },
+            month: { $month: { date: '$createdAt', timezone: '+05:30' } },
+          },
+          totalBills: { $sum: 1 },
+          totalSales: { $sum: '$grandTotal' },
+          totalCollected: { $sum: '$amountPaid' },
+          outstanding: { $sum: { $subtract: ['$grandTotal', '$amountPaid'] } },
+        },
+      },
+      {
+        $sort: {
+          '_id.year': -1,
+          '_id.month': -1,
+        },
+      },
+    ];
+
+    const monthlyRaw = await CreditBill.aggregate(monthlyPipeline);
+
+    const monthlyDetails = [0, 1, 2, 3].map((offset) => {
+      const d = new Date(now.getFullYear(), now.getMonth() - offset, 1);
+      const yr = d.getFullYear();
+      const mth = d.getMonth() + 1;
+      const found = monthlyRaw.find(
+        (item: any) => item._id && item._id.year === yr && item._id.month === mth,
+      );
+      const monthName = d.toLocaleString('en-US', { month: 'long', year: 'numeric' });
+      const firstDay = new Date(yr, mth - 1, 1);
+      const lastDay = new Date(yr, mth, 0);
+      const formatDateStr = (date: Date) => {
+        const y = date.getFullYear();
+        const m = String(date.getMonth() + 1).padStart(2, '0');
+        const day = String(date.getDate()).padStart(2, '0');
+        return `${y}-${m}-${day}`;
+      };
+
+      return {
+        monthKey: `${yr}-${String(mth).padStart(2, '0')}`,
+        label: monthName,
+        shortLabel: d.toLocaleString('en-US', { month: 'short' }),
+        year: yr,
+        month: mth,
+        startDate: formatDateStr(firstDay),
+        endDate: formatDateStr(lastDay),
+        isCurrent: offset === 0,
+        offset,
+        totalBills: found?.totalBills || 0,
+        totalSales: found?.totalSales || 0,
+        totalCollected: found?.totalCollected || 0,
+        outstanding: Math.max(0, found?.outstanding || 0),
+      };
+    });
+
+    const currentMonthStats = monthlyDetails[0];
+    const previous3MonthsList = monthlyDetails.slice(1, 4);
+    const last3MonthsCombinedStats = {
+      totalBills: monthlyDetails.slice(0, 3).reduce((acc, m) => acc + m.totalBills, 0),
+      totalSales: monthlyDetails.slice(0, 3).reduce((acc, m) => acc + m.totalSales, 0),
+      totalCollected: monthlyDetails.slice(0, 3).reduce((acc, m) => acc + m.totalCollected, 0),
+      outstanding: monthlyDetails.slice(0, 3).reduce((acc, m) => acc + m.outstanding, 0),
+    };
 
     return NextResponse.json({
       success: true,
       data: bills,
       pagination: { total, page, pages: Math.ceil(total / limit) },
       stats: stats || { totalBills: 0, totalGrand: 0, totalPaid: 0, totalOutstanding: 0 },
+      monthlyDetails,
+      currentMonthStats,
+      previous3MonthsList,
+      last3MonthsCombinedStats,
     });
   } catch (error: unknown) {
     const message = error instanceof Error ? error.message : 'Unknown error';
@@ -112,10 +226,21 @@ export async function POST(req: Request) {
       amountPaid = 0,
       isHistorical = false,
       billDate,
+      paymentMethod = 'Cash',
+      chequeNumber,
+      bankName,
+      chequeDate,
+      chequeStatus = 'Pending',
     } = body;
 
     if (!customerName || !items || items.length === 0) {
       return NextResponse.json({ success: false, error: 'Customer name and at least one item are required' }, { status: 400 });
+    }
+
+    if (paymentMethod === 'Cheque' && amountPaid > 0) {
+      if (!chequeNumber || !chequeNumber.trim()) {
+        return NextResponse.json({ success: false, error: 'Cheque number is required for cheque payments' }, { status: 400 });
+      }
     }
 
     await dbConnect();
@@ -203,6 +328,9 @@ export async function POST(req: Request) {
       }
     }
 
+    const isCheque = paymentMethod === 'Cheque' && amountPaid > 0;
+    const resolvedChequeDate = isCheque && chequeDate ? new Date(chequeDate) : (isCheque ? new Date() : undefined);
+
     // Create the bill
     const bill = await CreditBill.create({
       billNumber,
@@ -214,6 +342,11 @@ export async function POST(req: Request) {
       discount: discount || 0,
       grandTotal,
       amountPaid,
+      paymentMethod: amountPaid > 0 ? paymentMethod : 'Credit',
+      chequeNumber: isCheque ? chequeNumber.trim() : undefined,
+      bankName: isCheque ? (bankName ? bankName.trim() : undefined) : undefined,
+      chequeDate: resolvedChequeDate,
+      chequeStatus: isCheque ? (chequeStatus || 'Pending') : undefined,
       isHistorical,
       dueDate: dueDate ? new Date(dueDate) : undefined,
       note,
@@ -221,9 +354,14 @@ export async function POST(req: Request) {
       paymentHistory: amountPaid > 0 ? [{
         amount: amountPaid,
         date: new Date(),
+        paymentMethod: paymentMethod || 'Cash',
+        chequeNumber: isCheque ? chequeNumber.trim() : undefined,
+        bankName: isCheque ? (bankName ? bankName.trim() : undefined) : undefined,
+        chequeDate: resolvedChequeDate,
+        chequeStatus: isCheque ? (chequeStatus || 'Pending') : undefined,
         note: isHistorical
-          ? 'Initial payment recorded during historical bill import'
-          : 'Initial payment recorded during bill creation',
+          ? (isCheque ? `Cheque #${chequeNumber.trim()}${bankName ? ' (' + bankName.trim() + ')' : ''}` : 'Initial payment recorded during historical bill import')
+          : (isCheque ? `Cheque #${chequeNumber.trim()}${bankName ? ' (' + bankName.trim() + ')' : ''}` : 'Initial payment recorded during bill creation'),
         recordedBy: userId,
       }] : [],
       createdBy: userId,
